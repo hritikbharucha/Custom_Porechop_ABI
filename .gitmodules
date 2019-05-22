@@ -1,0 +1,3 @@
+[submodule "adaptFinder"]
+	path = adaptFinder
+	url = git@github.com:qbonenfant/adaptFinder.git

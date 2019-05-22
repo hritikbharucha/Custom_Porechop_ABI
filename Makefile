@@ -1,4 +1,6 @@
 # This makefile will build the C++ components of Porechop.
+# EDIT: qbonenfant
+# Modified the makefile so it also build adaptFinder tool
 
 # Example commands:
 #   make (build in release mode)
@@ -27,6 +29,7 @@ SOURCES      = $(shell find porechop -name "*.cpp")
 HEADERS      = $(shell find porechop -name "*.h")
 OBJECTS      = $(SOURCES:.cpp=.o)
 
+ADAPTFINDER = $(shell find ab_initio -name "adaptFinder.cpp")
 # Linux needs '-soname' while Mac needs '-install_name'
 PLATFORM     = $(shell uname)
 ifeq ($(PLATFORM), Darwin)
@@ -34,6 +37,9 @@ SONAME       = -install_name
 else
 SONAME       = -soname
 endif
+
+
+all: $(TARGET) adaptFinder
 
 .PHONY: release
 release: FLAGS+=$(RELEASEFLAGS)
@@ -43,8 +49,12 @@ release: $(TARGET)
 debug: FLAGS+=$(DEBUGFLAGS)
 debug: $(TARGET)
 
+
 $(TARGET): $(OBJECTS)
 	$(CXX) $(FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,$(SONAME),$(TARGET) -o $(TARGET) $(OBJECTS)
+
+adaptFinder: 
+	$(CXX) $(FLAGS) -fopenmp -O4 -DNDEBUG -march=native  -mtune=native  $(ADAPTFINDER) -lrt -o adaptFinder
 
 clean:
 	$(RM) $(OBJECTS)
