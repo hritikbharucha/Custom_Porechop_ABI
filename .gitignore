@@ -32,3 +32,6 @@ setuptools*.zip
 .idea/
 
 gh-md-toc
+
+.directory
+porechop/tmp*
