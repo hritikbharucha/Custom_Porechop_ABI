@@ -1,8 +1,24 @@
+This is a custom version of porechop.
+
+I added a wrapper for my adaptFinder tool so adapter can  be directly infered from reads.
+
+## INSTALLATION
+- clone the repo
+- go to /porechop
+- sudo -H ./setup.py install
+
+now you can just use porechop as usual.
+
+If you want to use the new option, use the --ab_initio flag, everything will (should) run smoothly.
+
+More elaborate documentation will come soon.
+
+
 <p align="center"><img src="misc/porechop_logo_knife.png" alt="Porechop" width="600"></p>
 
 Porechop is a tool for finding and removing adapters from [Oxford Nanopore](https://nanoporetech.com/) reads. Adapters on the ends of reads are trimmed off, and when a read has an adapter in its middle, it is treated as chimeric and chopped into separate reads. Porechop performs thorough alignments to effectively find adapters, even at low sequence identity.
 
-Porechop also supports demultiplexing of Nanopore reads that were barcoded with the [Native Barcoding Kit](https://store.nanoporetech.com/native-barcoding-kit-1d.html), [PCR Barcoding Kit](https://store.nanoporetech.com/pcr-barcoding-kit-96.html) or [Rapid Barcoding Kit](https://store.nanoporetech.com/rapid-barcoding-sequencing-kit.html).
+Porechop also supports demultiplexing of Nanopore reads that were barcoded with the [Native Barcoding Kit](https://store.nanoporetech.com/native-barcoding-kit-1d.html), [PCR Barcoding Kit](https://store.nanoporetech.com/pcr-barcoding-kit-96.html) or [Rapid Barcoding Kit](https://store.nanoporetech.com/rapid-barcoding-sequencing-k docit.html).
 
 
 ### Oct 2018 update: Porechop is officially unsupported
