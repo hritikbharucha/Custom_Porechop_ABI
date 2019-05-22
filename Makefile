@@ -29,7 +29,7 @@ SOURCES      = $(shell find porechop -name "*.cpp")
 HEADERS      = $(shell find porechop -name "*.h")
 OBJECTS      = $(SOURCES:.cpp=.o)
 
-ADAPTFINDER = $(shell find ab_initio -name "adaptFinder.cpp")
+ADAPTFINDER = adaptFinder/adaptFinder.cpp
 # Linux needs '-soname' while Mac needs '-install_name'
 PLATFORM     = $(shell uname)
 ifeq ($(PLATFORM), Darwin)
@@ -39,7 +39,7 @@ SONAME       = -soname
 endif
 
 
-all: $(TARGET) adaptFinder
+all: $(TARGET) adaptFind
 
 .PHONY: release
 release: FLAGS+=$(RELEASEFLAGS)
@@ -53,14 +53,14 @@ debug: $(TARGET)
 $(TARGET): $(OBJECTS)
 	$(CXX) $(FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,$(SONAME),$(TARGET) -o $(TARGET) $(OBJECTS)
 
-adaptFinder: 
-	$(CXX) $(FLAGS) -fopenmp -O4 -DNDEBUG -march=native  -mtune=native  $(ADAPTFINDER) -lrt -o adaptFinder
+adaptFind: 
+	$(CXX) $(FLAGS) -fopenmp -O4 -DNDEBUG -march=native  -mtune=native  $(ADAPTFINDER) -lrt -o porechop/adaptFinder
 
 clean:
-	$(RM) $(OBJECTS)
+	$(RM) $(OBJECTS) porechop/adaptFinder
 
 distclean: clean
-	$(RM) $(TARGET)
+	$(RM) $(TARGET) 
 
 %.o: %.cpp $(HEADERS)
 	$(CXX) $(FLAGS) $(CXXFLAGS) -c -o $@ $<
