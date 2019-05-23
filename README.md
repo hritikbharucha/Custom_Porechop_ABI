@@ -1,15 +1,11 @@
-This is a custom version of porechop.
+This is my custom version of porechop.
 
 I added a wrapper for my adaptFinder tool so adapter can  be directly infered from reads.
 
 ## INSTALLATION
-- clone the repo
-- go to /porechop
-- sudo -H ./setup.py install
-
-now you can just use porechop as usual.
-
-If you want to use the new option, use the --ab_initio flag, everything will (should) run smoothly.
+Just install this repository as described in the porechop documentation. 
+You can either install it or just build the c++ sources and then run locally. 
+If you want to use the new feature, use the --ab_initio flag, everything will (should) run smoothly.
 
 More elaborate documentation will come soon.
 
