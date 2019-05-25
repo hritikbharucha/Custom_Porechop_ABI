@@ -1,6 +1,12 @@
 This is my custom version of porechop.
+It contains a wrapper for my adapter finder tool, allowing adapter inference from the reads.
 
-I added a wrapper for my adaptFinder tool so adapter can  be directly infered from reads.
+## REQUIREMENT
+The requirement are the same as porechop, except you'll also need to install networkx. 
+~~~
+pip install networkx
+~~~
+Networkx is used for the simple assembly part.
 
 ## INSTALLATION
 Just install this repository as described in the porechop documentation. 
