@@ -16,7 +16,7 @@ Networkx is used for the simple assembly part.
 First clone the repository using --recurse-submodules option
 
 ~~~
-git clone --recurse-submodules git@github.com:qbonenfant/Porechop.git
+git clone --recursive git@github.com:qbonenfant/Porechop.git
 ~~~
 
 Then just install as described in the Porechop [documentation](#installation).  
