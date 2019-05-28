@@ -13,10 +13,10 @@ Networkx is used for the simple assembly part.
 
 ## INSTALLATION of ab initio version
 
-First clone the repository using --recurse-submodules option
+First clone the repository using --recursive option
 
 ~~~
-git clone --recursive git@github.com:qbonenfant/Porechop.git
+git clone --recursive https://github.com/qbonenfant/Porechop.git
 ~~~
 
 Then just install as described in the Porechop [documentation](#installation).  
