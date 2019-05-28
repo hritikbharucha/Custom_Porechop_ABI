@@ -181,11 +181,12 @@ def execFindAdapt(fasta_file):
         subprocess.check_call( command.split() )
 
         # Building adapters from counts using  different method:
-        # - Building a Deruijn graph and searching the longest or heaviest path
+        # - Building a Deruijn graph and searching the longest path and heaviest path
         # - Greedy assembly based on kmer rank
         # TODO: I REALLY need to improve the reconstruction using proper assembly method...
         # The proposed methods slightly overstimate the real adapter length and may prefer 
         # adapter containing insertion errors.
+        # Porechop can still properly detect adapters since it uses a quite low identity threshold of 75%. 
         
         graph, greed, heavy = buildAdapter(filename_pref + which_end + "_count.txt")
         
