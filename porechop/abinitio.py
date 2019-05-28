@@ -177,7 +177,8 @@ def execFindAdapt(fasta_file):
 
         adapt_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "adaptFinder")
 
-        command =  adapt_path +" "+ fasta_file + " -k 16 -sn 30000 -sl 80 --limit 1000 -nt " + str(min( 4, cpu_count() )) + " -o " + filename_pref + which_end + "_count.txt"
+        bot = "" if which_end == "starts" else " -bot " 
+        command =  adapt_path +" "+ fasta_file + " -k 16 -sn 30000 -sl 80 --limit 1000 -nt " + str(min( 4, cpu_count() )) + bot + " -o " + filename_pref + which_end + "_count.txt"
         subprocess.check_call( command.split() )
 
         # Building adapters from counts using  different method:

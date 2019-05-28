@@ -34,8 +34,13 @@ ADAPTFINDER = adaptFinder/adaptFinder.cpp
 PLATFORM     = $(shell uname)
 ifeq ($(PLATFORM), Darwin)
 SONAME       = -install_name
+OMP 		 = 
+LRT 		 = 
+
 else
 SONAME       = -soname
+OMP 		 = -fopenmp
+LRT 		 = -lrt
 endif
 
 
@@ -54,7 +59,7 @@ $(TARGET): $(OBJECTS)
 	$(CXX) $(FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,$(SONAME),$(TARGET) -o $(TARGET) $(OBJECTS)
 
 adaptFind: 
-	$(CXX) $(FLAGS) -fopenmp -O4 -DNDEBUG -march=native  -mtune=native  $(ADAPTFINDER) -lrt -o porechop/adaptFinder
+	$(CXX) $(FLAGS) $(OMP) -O3 -DNDEBUG -march=native  -mtune=native  $(ADAPTFINDER) $(LRT) -o porechop/adaptFinder
 
 clean:
 	$(RM) $(OBJECTS) porechop/adaptFinder
