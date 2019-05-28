@@ -15,13 +15,33 @@ Networkx is used for the simple assembly part.
 
 First clone the repository using --recursive option
 
-~~~
-git clone --recursive https://github.com/qbonenfant/Porechop.git
-~~~
 
-Then just install as described in the Porechop [documentation](#installation).  
+```bash
+git clone --recursive https://github.com/qbonenfant/Porechop.git
+```
+
+Then just install as described in the Porechop [documentation](#installation).
 You can either install it or just build the c++ sources and then run locally. 
-If you want to use the new feature, use the --ab_initio flag, everything will (should) run smoothly.
+
+```bash
+cd Porechop
+./setup.py install
+porechop -h
+```
+If there is any complains about permissions, you can either use sudo -H
+
+```bash
+sudo -H ./setup.py install
+```
+or just build the main files and run it using the porechop_runner.py
+
+```bash
+make clean
+make
+./porechop-runner.py -h
+```
+
+If you want to use the new feature, use the --ab_initio flag.
 
 ## 
 
