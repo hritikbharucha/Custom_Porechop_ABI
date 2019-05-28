@@ -1,5 +1,8 @@
-This is my custom version of porechop.
-It contains a wrapper for my adapter finder tool, allowing adapter inference from the reads.
+Porechop *ab initio* version.
+
+This version of porechop contains a wrapper for my [adapter finder](https://github.com/qbonenfant/adaptFinder) tool, allowing adapter inference from the reads.
+
+It automatically integrate the infered adapter to the Porechop adapter list.
 
 ## REQUIREMENT
 The requirement are the same as porechop, except you'll also need to install networkx. 
@@ -8,12 +11,20 @@ pip install networkx
 ~~~
 Networkx is used for the simple assembly part.
 
-## INSTALLATION
-Just install this repository as described in the porechop documentation. 
+## INSTALLATION of ab initio version
+
+First clone the repository using --recurse-submodules option
+
+~~~
+git clone --recurse-submodules git@github.com:qbonenfant/Porechop.git
+~~~
+
+Then just install as described in the Porechop [documentation](#installation).  
 You can either install it or just build the c++ sources and then run locally. 
 If you want to use the new feature, use the --ab_initio flag, everything will (should) run smoothly.
 
-More elaborate documentation will come soon.
+## 
+
 
 
 <p align="center"><img src="misc/porechop_logo_knife.png" alt="Porechop" width="600"></p>
