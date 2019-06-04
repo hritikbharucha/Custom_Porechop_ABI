@@ -34,13 +34,13 @@ def main():
     reads, check_reads, read_type = load_reads(args.input, args.verbosity, args.print_dest,
                                                args.check_reads)
 
-
-    # MODIFICATION
+    # modifiying global variable ADAPTERS
     global ADAPTERS
     if(args.ab_initio):
-        ADAPTERS += execFindAdapt(args.input)
-        
-    # END OF MODIFICATION
+        ADAPTERS += execFindAdapt(args.input, args.find_adapter_only, arbs.verbosity, args.print_dest)
+        # If we just want to display inferred adapter)
+        if(args.find_adapter_only):
+            exit()
 
     matching_sets = find_matching_adapter_sets(check_reads, args.verbosity, args.end_size,
                                                args.scoring_scheme_vals, args.print_dest,
@@ -96,6 +96,15 @@ def get_arguments():
                                                  'Nanopore reads, trimming them from the ends and '
                                                  'splitting reads with internal adapters',
                                      formatter_class=MyHelpFormatter, add_help=False)
+    
+
+    abi_group = parser.add_argument_group('Ab-Initio options')
+    abi_group.add_argument('--ab_initio', action='store_true',
+                                      help='Try to find the adapter from the read set '
+                                      'instead of using adapter.py')
+    abi_group.add_argument('--find_adapter_only', action='store_true',
+                                      help='Just display the inferred adapters, then quit.')
+
     main_group = parser.add_argument_group('Main options')
     main_group.add_argument('-i', '--input', required=True,
                             help='FASTA/FASTQ of input reads or a directory which will be '
@@ -151,13 +160,7 @@ def get_arguments():
                                            'adapters to determine which adapter sets are present')
     adapter_search_group.add_argument('--scoring_scheme', type=str, default='3,-6,-5,-2',
                                       help='Comma-delimited string of alignment scores: match, '
-                                           'mismatch, gap open, gap extend')
-    # START OF PARSER MODIFICATION
-    adapter_search_group.add_argument('--ab_initio', action='store_true',
-                                      help='Try to find the adapter from the read set '
-                                      'instead of using adapter.py')
-    # END OF MODIFICATION
-    
+                                           'mismatch, gap open, gap extend')  
 
     end_trim_group = parser.add_argument_group('End adapter settings',
                                                'Control the trimming of adapters from read ends')

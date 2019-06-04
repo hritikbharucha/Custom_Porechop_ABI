@@ -8,8 +8,7 @@ using the adapter.py static database. This is still in its early stage, but do s
 
 A futur, far cleaner version of this script will be edited in order to use my c++ code "the proper way".
 
-I could have allowed users to specify arguments like k-mer size, LC threshold, sample size and length,
-but i will need to alter the porechop parser a lot more.
+In order to change the parameters for adaptFinder, change the abinitio.conf file.
 """
 
 import os
@@ -18,6 +17,7 @@ from multiprocessing import cpu_count
 from  .adapters import Adapter
 import networkx as nx
 import sys
+
 
 def haveOverlap(seq1, seq2):
     """Check if the sequence 1 is a prefix of sequence 2
@@ -31,6 +31,7 @@ def haveOverlap(seq1, seq2):
     else:
         return("")
 
+
 def get_weight(g,path):
     """Compute the weight of a path in the graph
     @param the graph
@@ -42,6 +43,7 @@ def get_weight(g,path):
     for node in path:
         total += g.nodes[node]["weight"]
     return(total)
+
 
 def greedy_assembl(kmer_list):
     """Greedy assembly method to compute the adapter
@@ -102,9 +104,12 @@ def heavy_path(g):
     return( hv_path[0][:-1] + "".join( el[-1] for el in hv_path ) )
 
 
+def longest_path(g):
+    lg_path = nx.dag_longest_path(g)
+    return(lg_path[0][:-1] + "".join( el[-1] for el in lg_path ))
 
 
-def buildAdapter(count_file):
+def build_graph(count_file):
     """Build the adapter from the kmer count file.
        The way it is done is by building a directed weighted graph
        and searching for the heaviest path.
@@ -139,15 +144,11 @@ def buildAdapter(count_file):
     # Longest path        
     lg_path = nx.dag_longest_path(g)
 
-    # adapters
-    graph_adapter  = lg_path[0][:-1] + "".join( el[-1] for el in lg_path )
-    greedy_adapter = greedy_assembl(kmer_list)
-    heavy_adapter  = heavy_path(g)
 
-    return( graph_adapter, greedy_adapter, heavy_adapter )
+    return(g)
 
 
-def execFindAdapt(fasta_file):
+def execFindAdapt(fasta_file, just_print, v, print_dest):
     
     """ Launch adaptFinder to perform the approximate kmers count and try 
     to rebuild the adapter using different methods.
@@ -157,7 +158,7 @@ def execFindAdapt(fasta_file):
     """
 
     greedy_adapter = {}
-    graph_adapter  = {}
+    long_adapter  = {}
     heavy_adapter  = {}
 
     # Temporary files prefix
@@ -173,46 +174,67 @@ def execFindAdapt(fasta_file):
     for which_end in ['starts','ends']:
 
         #Counting k-mers at ~ 2 errs
-        print("Counting kmers at the " + which_end + " of the sequences")
+        if(v>=1):
+            print("Counting kmers at the " + which_end + " of the sequences", file= print_dest )
 
         adapt_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "adaptFinder")
 
-        bot = "" if which_end == "starts" else " -bot " 
-        command =  adapt_path +" "+ fasta_file + " -k 16 -lc 1.1 -sn 30000 -sl 80 --limit 1000 -nt " + str(min( 4, cpu_count() )) + bot + " -o " + filename_pref + which_end + "_count.txt"
+        bot = "" if which_end == "starts" else " -bot "
+
+        command =  adapt_path +" "+ fasta_file + " -k 16 -lc 1.1 -sn 30000 -sl 80 --limit 1000 -nt " + str(min( 4, cpu_count() )) + bot + " -v " + str(v) + " -o " + filename_pref + which_end + "_count.txt"
         subprocess.check_call( command.split() )
 
         # Building adapters from counts using  different method:
         # - Building a Deruijn graph and searching the longest path and heaviest path
-        # - Greedy assembly based on kmer rank
+        # - Greedy assembly based on kmer rank (most frequent first)
         # TODO: I REALLY need to improve the reconstruction using proper assembly method...
         # The proposed methods slightly overstimate the real adapter length and may prefer 
         # adapter containing insertion errors.
         # Porechop can still properly detect adapters since it uses a quite low identity threshold of 75%. 
         
-        graph, greed, heavy = buildAdapter(filename_pref + which_end + "_count.txt")
+        g = build_graph(filename_pref + which_end + "_count.txt")
         
-        graph_adapter[which_end]  = graph
-        greedy_adapter[which_end] = greed
-        heavy_adapter[which_end]  = heavy
+        # adapters
+        greedy_adapter[which_end] = greedy_assembl(g.nodes)
+        long_adapter[which_end]   = longest_path(g)
+        heavy_adapter[which_end]  = heavy_path(g)
 
-    # Getting back to porechop objects
-    print("Building adapter object")
-    adp = [Adapter("abinitio_graph_adapter",
-        start_sequence=('abinitio_graph_Top' , graph_adapter['starts']),
-        end_sequence=('abinitio_graph_Bottom', graph_adapter['ends'])),
+    # If we just need to print the adapter
+    if(just_print):
+        print("INFERRED ADAPTERS:\n", file= print_dest )
 
-        Adapter("abinitio_heavy_adapter",
-        start_sequence=('abinitio_heavy_Top' , heavy_adapter['starts']),
-        end_sequence=('abinitio_heavy_Bottom', heavy_adapter['ends'])),
+        print("Greedy assembly method", file= print_dest )
+        print("Start:\t" + greedy_adapter['starts'], file= print_dest )
+        print("End:\t"   + greedy_adapter['ends']+"\n", file= print_dest )
 
-        Adapter("abinitio_greedy_adapter",
-        start_sequence=('abinitio_greedy_Top' , greedy_adapter['starts']),
-        end_sequence=('abinitio_greedy_Bottom', greedy_adapter['ends']))
-    ]
+        print("Longest Path assembly method", file= print_dest )
+        print("Start:\t" + long_adapter['starts'], file= print_dest )
+        print("End:\t"   + long_adapter['ends']+"\n", file= print_dest )
 
-    print("The inference of adapters sequence is done.")
-    
-    return(adp)
+        print("Heaviest Path assembly method", file= print_dest )
+        print("Start:\t" + heavy_adapter['starts'], file= print_dest )
+        print("End:\t"   + heavy_adapter['ends']+"\n", file= print_dest )
+
+    # If we need to use them, getting back to porechop objects
+    else:
+        if(v>=1):
+            print("Building adapter object", file= print_dest )
+        adp = [Adapter("abinitio_long_adapter",
+            start_sequence=('abinitio_graph_Top' , long_adapter['starts']),
+            end_sequence=('abinitio_graph_Bottom', long_adapter['ends'])),
+
+            Adapter("abinitio_heavy_adapter",
+            start_sequence=('abinitio_heavy_Top' , heavy_adapter['starts']),
+            end_sequence=('abinitio_heavy_Bottom', heavy_adapter['ends'])),
+
+            Adapter("abinitio_greedy_adapter",
+            start_sequence=('abinitio_greedy_Top' , greedy_adapter['starts']),
+            end_sequence=('abinitio_greedy_Bottom', greedy_adapter['ends']))
+        ]
+        if(v>=1):
+            print("The inference of adapters sequence is done.", file= print_dest )
+        return(adp)
+    return([])
 
 
 if __name__ == '__main__':
