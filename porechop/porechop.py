@@ -31,13 +31,14 @@ from .abinitio import execFindAdapt
 
 def main():
     args = get_arguments()
-    reads, check_reads, read_type = load_reads(args.input, args.verbosity, args.print_dest,
+    if(not args.find_adapter_only):
+        reads, check_reads, read_type = load_reads(args.input, args.verbosity, args.print_dest,
                                                args.check_reads)
 
     # modifiying global variable ADAPTERS
     global ADAPTERS
     if(args.ab_initio):
-        ADAPTERS += execFindAdapt(args.input, args.find_adapter_only, arbs.verbosity, args.print_dest)
+        ADAPTERS += execFindAdapt(args.input, args.find_adapter_only, args.verbosity, args.print_dest)
         # If we just want to display inferred adapter)
         if(args.find_adapter_only):
             exit()
@@ -242,6 +243,7 @@ def load_reads(input_file_or_directory, verbosity, print_dest, check_read_count)
     # If the input is a file, just load reads from that file. The check reads will just be the
     # first reads from that file.
     if os.path.isfile(input_file_or_directory):
+
         if verbosity > 0:
             print('\n' + bold_underline('Loading reads'), flush=True, file=print_dest)
             print(input_file_or_directory, flush=True, file=print_dest)
