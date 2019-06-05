@@ -23,7 +23,7 @@ pip install networkx
 First, clone the repository using the recursive option :
 
 ```bash
-git clone --recursive https://github.com/qbonenfant/Porechop.git
+git clone --recursive https://github.com/qbonenfant/Porechop_ABI.git
 ```
 
 Then, just install as described in the Porechop [documentation](README_PORECHOP.md).  
