@@ -295,14 +295,14 @@ def execFindAdapt(args):
         # if non verbose mode, display should be minimal
         else:
             print("greedy")
-            print(greedy_adapter["start"], file= print_dest )
-            print(greedy_adapter["end"], file= print_dest )
+            print(greedy_adapter["start"])
+            print(greedy_adapter["end"])
             print("longest_path")
-            print(long_adapter["start"], file= print_dest )
-            print(long_adapter["end"], file= print_dest )
+            print(long_adapter["start"])
+            print(long_adapter["end"])
             print("heaviest_path")
-            print(heavy_adapter["start"], file= print_dest )
-            print(heavy_adapter["end"], file= print_dest )
+            print(heavy_adapter["start"])
+            print(heavy_adapter["end"])
 
 
     # If we need to use them, getting back to porechop objects

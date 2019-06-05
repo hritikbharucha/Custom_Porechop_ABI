@@ -106,7 +106,7 @@ def get_arguments():
                                       'instead of using adapter.py')
     abi_group.add_argument('--guess_adapter_only', action='store_true',
                                       help='Just display the inferred adapters, then quit.')
-    abi_group.add_argument('--export_graph', type= str, default = "./",
+    abi_group.add_argument('--export_graph', type= str,
                                       help='Path to export the graph used for assembly (.graphml format)')
 
     main_group = parser.add_argument_group('Main options')
