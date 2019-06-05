@@ -31,16 +31,16 @@ from .abinitio import execFindAdapt
 
 def main():
     args = get_arguments()
-    if(not args.find_adapter_only):
+    if(not args.guess_adapter_only):
         reads, check_reads, read_type = load_reads(args.input, args.verbosity, args.print_dest,
                                                args.check_reads)
 
     # modifiying global variable ADAPTERS
     global ADAPTERS
     if(args.ab_initio):
-        ADAPTERS += execFindAdapt(args.input, args.find_adapter_only, args.verbosity, args.print_dest)
+        ADAPTERS += execFindAdapt(args)
         # If we just want to display inferred adapter)
-        if(args.find_adapter_only):
+        if(args.guess_adapter_only):
             exit()
 
     matching_sets = find_matching_adapter_sets(check_reads, args.verbosity, args.end_size,
@@ -93,7 +93,8 @@ def get_arguments():
     """
     default_threads = min(multiprocessing.cpu_count(), 16)
 
-    parser = argparse.ArgumentParser(description='Porechop: a tool for finding adapters in Oxford '
+    parser = argparse.ArgumentParser(description='Porechop_ABI: ab initio version of Porechop.'
+                                                 'A tool for finding adapters in Oxford '
                                                  'Nanopore reads, trimming them from the ends and '
                                                  'splitting reads with internal adapters',
                                      formatter_class=MyHelpFormatter, add_help=False)
@@ -103,8 +104,10 @@ def get_arguments():
     abi_group.add_argument('--ab_initio', action='store_true',
                                       help='Try to find the adapter from the read set '
                                       'instead of using adapter.py')
-    abi_group.add_argument('--find_adapter_only', action='store_true',
+    abi_group.add_argument('--guess_adapter_only', action='store_true',
                                       help='Just display the inferred adapters, then quit.')
+    abi_group.add_argument('--export_graph', type= str, default = "./",
+                                      help='Path to export the graph used for assembly (.graphml format)')
 
     main_group = parser.add_argument_group('Main options')
     main_group.add_argument('-i', '--input', required=True,
@@ -234,6 +237,10 @@ def get_arguments():
 
     if args.threads < 1:
         sys.exit('Error: at least one thread required')
+
+    # Force setting ab_initio if we only want to find adapter.
+    if(args.guess_adapter_only):
+        args.ab_initio = True;
 
     return args
 
