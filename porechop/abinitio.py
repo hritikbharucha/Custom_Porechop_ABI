@@ -278,19 +278,32 @@ def execFindAdapt(args):
 
     # If we just need to print the adapter
     if(just_print):
-        print("\n\nINFERRED ADAPTERS:\n", file= print_dest )
+        if(v>0):
+            print("\n\nINFERRED ADAPTERS:\n", file= print_dest )
 
-        print("Greedy assembly method", file= print_dest )
-        print("Start:\t" + greedy_adapter["start"], file= print_dest )
-        print("End:\t"   + greedy_adapter["end"]+"\n", file= print_dest )
+            print("Greedy assembly method", file= print_dest )
+            print("Start:\t" + greedy_adapter["start"], file= print_dest )
+            print("End:\t"   + greedy_adapter["end"]+"\n", file= print_dest )
 
-        print("Longest Path assembly method", file= print_dest )
-        print("Start:\t" + long_adapter["start"], file= print_dest )
-        print("End:\t"   + long_adapter["end"]+"\n", file= print_dest )
+            print("Longest Path assembly method", file= print_dest )
+            print("Start:\t" + long_adapter["start"], file= print_dest )
+            print("End:\t"   + long_adapter["end"]+"\n", file= print_dest )
 
-        print("Heaviest Path assembly method", file= print_dest )
-        print("Start:\t" + heavy_adapter["start"], file= print_dest )
-        print("End:\t"   + heavy_adapter["end"]+"\n", file= print_dest )
+            print("Heaviest Path assembly method", file= print_dest )
+            print("Start:\t" + heavy_adapter["start"], file= print_dest )
+            print("End:\t"   + heavy_adapter["end"]+"\n", file= print_dest )
+        # if non verbose mode, display should be minimal
+        else:
+            print("greedy")
+            print(greedy_adapter["start"], file= print_dest )
+            print(greedy_adapter["end"], file= print_dest )
+            print("longest_path")
+            print(long_adapter["start"], file= print_dest )
+            print(long_adapter["end"], file= print_dest )
+            print("heaviest_path")
+            print(heavy_adapter["start"], file= print_dest )
+            print(heavy_adapter["end"], file= print_dest )
+
 
     # If we need to use them, getting back to porechop objects
     else:
