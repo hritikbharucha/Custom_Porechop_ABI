@@ -20,13 +20,42 @@ pip install networkx
 
 ## Installation 
 
-First, clone the repository using the recursive option :
+
+Installation is similar to Porechop installation.
+
+First, clone the repository using the recursive option.
+Then, just install as described in the Porechop [documentation](README_PORECHOP.md).  
+
+Running the `setup.py` script will compile the C++ components of Porechop_ABI and install a `porechop` executable:
 
 ```bash
 git clone --recursive https://github.com/qbonenfant/Porechop_ABI.git
+cd Porechop_ABI
+python3 setup.py install
+porechop -h
 ```
 
-Then, just install as described in the Porechop [documentation](README_PORECHOP.md).  
+Notes:
+* If the last command complains about permissions, you may need to run it with `sudo`.
+* Install just for your user: `python3 setup.py install --user`
+    * If you get a strange "can't combine user with prefix" error, read [this](http://stackoverflow.com/questions/4495120).
+* Install to a specific location: `python3 setup.py install --prefix=$HOME/.local`
+* Install with pip (local copy): `pip3 install path/to/Porechop_ABI`
+* If you'd like to specify which compiler to use, set the `CXX` variable: `export CXX=g++-6; python3 setup.py install`
+* Porechop includes `ez_setup.py` for users who don't have [setuptools](https://pypi.python.org/pypi/setuptools) installed, though that script is [deprecated](https://github.com/pypa/setuptools/issues/581). So if you run into any installation problems, make sure setuptools is installed on your computer: `pip3 install setuptools
+* If you had a previous installation of Porechop, it will try to replace it. Setting a different installation folder while already having Porechop installed may lead to conflict when calling `porechop` from command line.
+
+
+### Build and run without installation
+
+By simply running `make` in Porechop's directory, you can compile the C++ components but not install an executable. The program can then be executed by directly calling the `porechop-runner.py` script.
+
+```bash
+git clone --recursive https://github.com/qbonenfant/Porechop_ABI.git
+cd Porechop_ABI
+make
+./porechop-runner.py -h
+```
 
 
 ## Usage
@@ -34,18 +63,19 @@ Then, just install as described in the Porechop [documentation](README_PORECHOP
 Porechop_abi offers two new options.
 
 ```bash
-Porechop –ab_initio
+Porechop --ab_initio
 ```
 
-This flag allows to first guess the adapter sequence from the reads, add the sequence to the list of Porechop adapters and then run Porechop as usual.  It is compatible with all Porechop options.
+This flag allows to first guess the adapter sequence from the reads, add the sequence to the list of Porechop adapters and then run Porechop as usual.  It is compatible with all Porechop options, but current version may behave poorly on on barcoded reads.
+
 
 ```bash
-Porechop –guess_adapter_only
+Porechop --guess_adapter_only
 ```
 
 This flag allows to only guess the adapter sequence from the reads. It then stops  the execution of the program, without trimming the reads. 
 
-It is also possible to tune the parameters used in the algorithm used to reconstruct the adapter sequence. Those advanced options are accessible in the config file XXX. Note that default values work just fine in practice, and it is most likely that you will not need to edit this file. 
+It is also possible to tune the parameters used in the algorithm used to reconstruct the adapter sequence. Those advanced options are accessible in the config file located in the Porechop_ABI/porechop/abinitio.conf. Note that default values work just fine in practice, and it is most likely that you will not need to edit this file. 
 
 For all other usages and description of the output files, you can refer to the Porechop [documentation](README_PORECHOP.md). 
 
