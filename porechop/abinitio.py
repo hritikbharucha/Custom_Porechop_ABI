@@ -213,7 +213,7 @@ def execFindAdapt(args):
     out_file_name =  filename_pref + "approx_kmer_count"
     nb_thread = str(min( 4, cpu_count() ))
 
-    command =  adapt_path +" "+ fasta_file + " -k 16 -lc 1.1 -sn 20000 -sl 80 --limit 1000 -nt " + nb_thread + " -v " + str(v) + " -o " + out_file_name
+    command =  adapt_path +" "+ fasta_file + " -k 16 -lc 1.2 -sn 20000 -sl 80 --limit 1000 -nt " + nb_thread + " -v " + str(v) + " -o " + out_file_name
     
     try:    
         subprocess.check_call( command.split() )
