@@ -69,6 +69,9 @@ class PorechopInstall(install):
         # added my custom cpp file
         shutil.copyfile(os.path.join('porechop', 'adaptFinder'),
                         os.path.join(self.install_lib, 'porechop', 'adaptFinder'))
+        # moving config file
+        shutil.copyfile(os.path.join('porechop', 'ab_initio.config'),
+                        os.path.join(self.install_lib, 'porechop', 'ab_initio.config'))
 
 
 class PorechopClean(Command):
