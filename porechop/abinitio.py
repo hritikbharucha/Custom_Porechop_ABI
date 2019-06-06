@@ -215,7 +215,8 @@ def execFindAdapt(args):
     nb_thread = str(min( 4, cpu_count() ))
 
     command =  adapt_path +" "+ fasta_file + " --config " + config_path + " -v " + str(v) + " -o " + out_file_name
-    print(command)
+    if(v>0):
+        print(command)
     
     try:    
         subprocess.check_call( command.split() )
