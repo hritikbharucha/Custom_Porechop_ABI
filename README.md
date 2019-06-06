@@ -73,11 +73,16 @@ This flag allows to first guess the adapter sequence from the reads, add the seq
 Porechop --guess_adapter_only
 ```
 
-This flag allows to only guess the adapter sequence from the reads. It then stops  the execution of the program, without trimming the reads. 
-
-It is also possible to tune the parameters used in the algorithm used to reconstruct the adapter sequence. Those advanced options are accessible in the config file located in the Porechop_ABI/porechop/abinitio.conf. Note that default values work just fine in practice, and it is most likely that you will not need to edit this file. 
+This flag allows to only guess the adapter sequence from the reads. It then stops  the execution of the program, without 
+trimming the reads. 
 
 For all other usages and description of the output files, you can refer to the Porechop [documentation](README_PORECHOP.md). 
+
+## Config file
+
+It is also possible to tune the parameters used in the algorithm used to reconstruct the adapter sequence. Those advanced options are accessible in the config file located in the Porechop_ABI/porechop/ab_initio.config. Note that default values work just fine in practice, and it is most likely that you will not need to edit this file. 
+
+If you installed Porechop using the setup.py script, take note that the actual config file used when using porechop from command line will be the one stored in your installation folder (default: /usr/local/lib/python3.__X__/dist-packages/porechop/porechop/ab_initio.config).
 
 
 ## Contributors
