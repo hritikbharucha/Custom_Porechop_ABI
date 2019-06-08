@@ -216,7 +216,8 @@ def execFindAdapt(args):
 
     out_file_name =  filename_pref + "approx_kmer_count"
     nb_thread = str(min( 4, cpu_count() ))
-
+    if(v>0):
+        print("Using config file:"+config_path, file = print_dest)
     command =  adapt_path +" "+ fasta_file + " --config " + config_path + " -v " + str(v) + " -o " + out_file_name
     if(v>0):
         print(command)
@@ -224,7 +225,7 @@ def execFindAdapt(args):
     try:    
         subprocess.check_call( command.split() )
     except SystemError as e:
-        print(e)
+        print(e,file=sys.stderr)
         sys.exit("ERROR: approximate k-mer count failed")
 
     # Building adapters from counts using  different method:
