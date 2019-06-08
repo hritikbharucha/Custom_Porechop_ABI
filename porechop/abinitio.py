@@ -209,7 +209,10 @@ def execFindAdapt(args):
 
     # Searchng path to adaptFinder
     adapt_path  = os.path.join(os.path.dirname(os.path.realpath(__file__)), "adaptFinder")
+    
+    # using custom config file if specified
     config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ab_initio.config")
+    config_path = args.ab_initio_config if args.ab_initio_config else config_path
 
     out_file_name =  filename_pref + "approx_kmer_count"
     nb_thread = str(min( 4, cpu_count() ))
