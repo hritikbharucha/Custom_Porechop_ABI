@@ -6,7 +6,7 @@ Porechop_abi is not specifically designed for demultiplexing and barcoded sequen
 
 ## Requirements 
 
-The requirement are the same as Porechop (Oct 2018 version), except you will also need to install the graph library [networkx] (https://networkx.github.io/).
+The requirement are the same as Porechop (Oct 2018 version), except you will also need to install the graph library [networkx](https://networkx.github.io/).
 
 ### Porechop requirements
 
