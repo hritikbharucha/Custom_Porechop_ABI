@@ -37,9 +37,10 @@ def main():
 
     # modifiying global variable ADAPTERS
     global ADAPTERS
+
     if(args.ab_initio):
-        if(args.v>0):
-            print('\n' + bold_underline('Ab Initio Phase'), flush=True, file=print_dest)
+        if(args.verbosity>0):
+            print('\n' + bold_underline('Ab Initio Phase'), flush=True, file=args.print_dest)
         ADAPTERS += execFindAdapt(args)
         # If we just want to display inferred adapter)
         if(args.guess_adapter_only):
@@ -108,7 +109,7 @@ def get_arguments():
                                       'instead of using adapter.py')
     abi_group.add_argument('--guess_adapter_only', action='store_true',
                                       help='Just display the inferred adapters, then quit.')
-    abi_group.add_argument('--ab_initio_config_', type= str,
+    abi_group.add_argument('--ab_initio_config', type= str,
                                       help='Path to the config file for ab_initio phase')
     abi_group.add_argument('--export_graph', type= str,
                                       help='Path to export the graph used for assembly (.graphml format)')
