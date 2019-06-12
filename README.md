@@ -51,7 +51,7 @@ Notes:
 By simply running `make` in Porechop's directory, you can compile the C++ components but not install an executable. The program can then be executed by directly calling the `porechop-runner.py` script.
 
 ```bash
-git clone --recursive https://github.com/qbonenfant/Porechop_ABI.git
+git clone --recursive https://github.com/bonsai-team/Porechop_ABI.git
 cd Porechop_ABI
 make
 ./porechop-runner.py -h
@@ -83,6 +83,12 @@ For all other usages and description of the output files, you can refer to the P
 It is also possible to tune the parameters used in the algorithm used to reconstruct the adapter sequence. Those advanced options are accessible in the config file located in the Porechop_ABI/porechop/ab_initio.config. Note that default values work just fine in practice, and it is most likely that you will not need to edit this file. 
 
 If you installed Porechop using the setup.py script, take note that the actual config file used when using porechop from command line will be the one stored in your installation folder (default: /usr/local/lib/python3.__X__/dist-packages/porechop/porechop/ab_initio.config).
+
+In the case you just want to adjust the parameters for one specific run, you can also pass a config file as a parameter to Porechop_ABI using the --ab_initio_config (-abc) flag.
+
+```bash
+Porechop --ab_initio_config YOUR_CONFIG.config
+```
 
 
 ## Contributors
