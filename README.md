@@ -29,7 +29,7 @@ Then, just install as described in the Porechop [documentation](README_PORECHOP
 Running the `setup.py` script will compile the C++ components of Porechop_ABI and install a `porechop` executable:
 
 ```bash
-git clone --recursive https://github.com/qbonenfant/Porechop_ABI.git
+git clone --recursive https://github.com/bonsai-team/Porechop_ABI.git
 cd Porechop_ABI
 python3 setup.py install
 porechop -h
