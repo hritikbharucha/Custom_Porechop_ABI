@@ -104,15 +104,16 @@ def get_arguments():
     
 
     abi_group = parser.add_argument_group('Ab-Initio options')
-    abi_group.add_argument('--ab_initio', action='store_true',
+    abi_group.add_argument('-abi','--ab_initio', action='store_true',
                                       help='Try to find the adapter from the read set '
                                       'instead of using adapter.py')
-    abi_group.add_argument('--guess_adapter_only', action='store_true',
+    abi_group.add_argument('-go','--guess_adapter_only', action='store_true',
                                       help='Just display the inferred adapters, then quit.')
-    abi_group.add_argument('--ab_initio_config', type= str,
-                                      help='Path to the config file for ab_initio phase')
+    abi_group.add_argument( '-abc' ,'--ab_initio_config', type= str,
+                                      help='Path to the your custom config file for ab_initio phase (not required for ab-initio)')
+    
     abi_group.add_argument('--export_graph', type= str,
-                                      help='Path to export the graph used for assembly (.graphml format)')
+                                      help='Path to export the graph used for assembly (.graphml format), if you want to keep it')
 
     main_group = parser.add_argument_group('Main options')
     main_group.add_argument('-i', '--input', required=True,
