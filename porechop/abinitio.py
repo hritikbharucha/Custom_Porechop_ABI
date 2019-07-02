@@ -334,7 +334,6 @@ def build_adapter(out_file_name, args):
         greedy_p = greedy_path(g)
         cut_greedy_p = []
         if(which_end == "start"):
-            print("STAAAAAAAAAAAAAT")
             cut_greedy_p = check_drop(greedy_p, g)
         elif(which_end == "end"):
             cut_greedy_p = check_drop_back(greedy_p, g)
