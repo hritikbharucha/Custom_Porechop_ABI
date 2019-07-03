@@ -124,9 +124,13 @@ def print_result(adapters, v=1, print_dest=sys.stdout):
 
     global METHODS
 
+    out = print_dest
+
     if(v > 0):
         print("\n\nINFERRED ADAPTERS:\n",
-              file=print_dest)
+              file=out)
+    else:
+        out = sys.stdout
 
     for meth in METHODS:
         msg = meth
@@ -139,9 +143,9 @@ def print_result(adapters, v=1, print_dest=sys.stdout):
             srt = "Start:\t" + srt
             end = "End:\t" + end
 
-        print(msg, file=print_dest)
-        print(srt)
-        print(end)
+        print(msg, file=out)
+        print(srt, file=out)
+        print(end, file=out)
 
 
 ##############################################################################
