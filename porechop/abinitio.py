@@ -276,30 +276,45 @@ def build_graph(count_file):
 
     g = nx.DiGraph()
 
-    # building graph
-    with open(count_file, 'r') as f:
-        for line in f:
-            km, nb = line.rstrip("\n").split("\t")
-            kmer_count[km] = int(nb)
-            kmer_list.append(km)
-            g.add_node(km, weight=int(nb))  # , path = "" )
+    # Avoiding IO error
+    try:
+        # building graph
+        with open(count_file, 'r') as f:
+            for line in f:
+                km, nb = line.rstrip("\n").split("\t")
+                kmer_count[km] = int(nb)
+                kmer_list.append(km)
+                g.add_node(km, weight=int(nb))  # , path = "" )
 
-    # searching overlaps
-    for km in kmer_list:
-        for km2 in kmer_list:
-            # since i do all the possible combinations
-            # There is no need to test both orientation
-            direct = haveOverlap(km, km2)
-            if(direct != ""):
-                g.add_edge(km, km2)
+    except FileNotFoundError:
+        print("\n/!\ Unable to open k-mer count file:", file=sys.stderr)
+        print(count_file, file=sys.stderr)
+        print("Either the file was moved, deleted, or filename is invalid.",
+              file=sys.stderr)
+        print("It is also possible that end adapter ressearch was skipped.",
+              file=sys.stderr)
+        print("Be sure skip_end / se option is deactivated in adaptFinder.\n",
+              file=sys.stderr)
 
-    # removing singletons
-    g.remove_nodes_from([node for node in g.nodes if len(
-        list(nx.all_neighbors(g, node))) == 0])
+    else:
+        # searching overlaps
+        for km in kmer_list:
+            for km2 in kmer_list:
+                # since i do all the possible combinations
+                # There is no need to test both orientation
+                direct = haveOverlap(km, km2)
+                if(direct != ""):
+                    g.add_edge(km, km2)
 
-    # Returning only the biggest connected component
-    return(g.subgraph(max(nx.weakly_connected_components(g),
-                          key=lambda x: get_weight(g, x))))
+        # removing singletons
+        g.remove_nodes_from([node for node in g.nodes if len(
+            list(nx.all_neighbors(g, node))) == 0])
+
+        # Returning only the biggest connected component
+        g = g.subgraph(max(nx.weakly_connected_components(g),
+                       key=lambda x: get_weight(g, x)))
+    finally:
+        return(g)
 
 ##############################################################################
 #                              ADPATER BUILDING                              #
@@ -320,6 +335,10 @@ def build_adapter(out_file_name, args):
     v = args.verbosity
 
     adapters = dd(dict)
+    adp = []
+
+    # Failsafe if one end of the adapter can not be build
+    unable_to_build = False
 
     for which_end in ["start", "end"]:
         if(v >= 1):
@@ -328,81 +347,89 @@ def build_adapter(out_file_name, args):
         # Building graph
         g = build_graph(out_file_name + "." + which_end)
 
-        # preping for anotation
-        nx.set_node_attributes(g, "", "path")
+        # Checking graph is properly build
+        if(not nx.is_empty(g)):
 
-        # Greedy Adapter
-        if(v >= 1):
-            print("\tBuilding greedy adapter", file=print_dest)
+            # preping for anotation
+            nx.set_node_attributes(g, "", "path")
 
-        greedy_p = greedy_path(g)
-        cut_greedy_p = []
-        if(which_end == "start"):
-            cut_greedy_p = check_drop(greedy_p, g)
-        elif(which_end == "end"):
-            cut_greedy_p = check_drop_back(greedy_p, g)
-
-        adapters["greedy"][which_end] = concat_path(cut_greedy_p)
-
-        # Heavy adapter
-        if(v >= 1):
-            print("\tBuilding heavy path adapter", file=print_dest)
-        try:
-            heavy_p = heavy_path(g)
-            cut_heavy_p = []
-            if(which_end == "start"):
-                cut_heavy_p = check_drop(heavy_p, g)
-            elif(which_end == "end"):
-                cut_heavy_p = check_drop_back(heavy_p, g)
-            adapters["heavy"][which_end] = concat_path(cut_heavy_p)
-
-        # i know i should specify the exception, but nx exception seems
-        # to not be caught here
-        except:
-            print("\t/!\ Could not compute " + which_end +
-                  " adaper using heaviest path  method",
-                  file=sys.stderr)
-            print("\t/!\ The resulting graph probably contains a loop.",
-                  file=sys.stderr)
-            adapters["heavy"][which_end] = [""]
-
-        # Exporting, if required
-        if(args.export_graph is not None):
+            # Greedy Adapter
             if(v >= 1):
-                print("\tExporting assembly graph", file=print_dest)
+                print("\tBuilding greedy adapter", file=print_dest)
 
-            base = "_adapter_graph"
-            if(".graphml" in args.export_graph):
-                base = "_" + os.path.basename(args.export_graph)
-            else:
-                path = os.path.join(os.path.dirname(
-                    args.export_graph), which_end + base + ".graphml")
+            greedy_p = greedy_path(g)
+            cut_greedy_p = []
+            if(which_end == "start"):
+                cut_greedy_p = check_drop(greedy_p, g)
+            elif(which_end == "end"):
+                cut_greedy_p = check_drop_back(greedy_p, g)
 
-            nx.write_graphml(g, path)
+            adapters["greedy"][which_end] = concat_path(cut_greedy_p)
 
-    adp = []
-    # If we just need to print the adapter
-    if(just_print):
-        print_result(adapters, v, print_dest)
-    # If we need to use them, getting back to porechop objects
+            # Heavy adapter
+            if(v >= 1):
+                print("\tBuilding heavy path adapter", file=print_dest)
+            try:
+                heavy_p = heavy_path(g)
+                cut_heavy_p = []
+                if(which_end == "start"):
+                    cut_heavy_p = check_drop(heavy_p, g)
+                elif(which_end == "end"):
+                    cut_heavy_p = check_drop_back(heavy_p, g)
+                adapters["heavy"][which_end] = concat_path(cut_heavy_p)
+
+            # I know i should specify the exception, but nx exception seems
+            # to not be caught here
+            except:
+                print("\t/!\ Could not compute " + which_end +
+                      " adaper using heaviest path  method",
+                      file=sys.stderr)
+                print("\t/!\ The resulting graph probably contains a loop.",
+                      file=sys.stderr)
+                adapters["heavy"][which_end] = [""]
+
+            # Exporting, if required
+            if(args.export_graph is not None):
+                if(v >= 1):
+                    print("\tExporting assembly graph", file=print_dest)
+
+                base = "_adapter_graph"
+                if(".graphml" in args.export_graph):
+                    base = "_" + os.path.basename(args.export_graph)
+                else:
+                    path = os.path.join(os.path.dirname(
+                        args.export_graph), which_end + base + ".graphml")
+
+                nx.write_graphml(g, path)
+        else:
+            unable_to_build = True
+
+    if(not unable_to_build):
+        # If we just need to print the adapter
+        if(just_print):
+            print_result(adapters, v, print_dest)
+        # If we need to use them, getting back to porechop objects
+        else:
+            if(v >= 1):
+                print("Building adapter object", file=print_dest)
+
+            adp = [Adapter("abinitio_heavy_adapter",
+                           start_sequence=('abinitio_heavy_Top',
+                                           adapters["heavy"]['start']),
+                           end_sequence=('abinitio_heavy_Bottom',
+                                         adapters["heavy"]['end'])),
+
+                   Adapter("abinitio_greedy_adapter",
+                           start_sequence=('abinitio_greedy_Top',
+                                           adapters["greedy"]['start']),
+                           end_sequence=('abinitio_greedy_Bottom',
+                                         adapters["greedy"]['end']))
+                   ]
+            if(v >= 1):
+                print("The inference of adapters sequence is done.",
+                      file=print_dest)
     else:
-        if(v >= 1):
-            print("Building adapter object", file=print_dest)
-        adp = [Adapter("abinitio_heavy_adapter",
-                       start_sequence=('abinitio_heavy_Top',
-                                       adapters["heavy"]['start']),
-                       end_sequence=('abinitio_heavy_Bottom',
-                                     adapters["heavy"]['end'])),
-
-               Adapter("abinitio_greedy_adapter",
-                       start_sequence=('abinitio_greedy_Top',
-                                       adapters["greedy"]['start']),
-                       end_sequence=('abinitio_greedy_Bottom',
-                                     adapters["greedy"]['end']))
-               ]
-        if(v >= 1):
-            print("The inference of adapters sequence is done.",
-                  file=print_dest)
+        print("Unable to build adapter", file=print_dest)
     return(adp)
 
 
