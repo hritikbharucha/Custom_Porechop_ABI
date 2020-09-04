@@ -86,7 +86,7 @@ def check_drop(path, g):
     for i in range(len(path) - 1, 1, -1):
         last = path[i]
         prev = path[i - 1]
-        if(g.node[prev]["weight"] / float(g.node[last]["weight"]) > CUT_RATIO):
+        if(g.nodes[prev]["weight"] / float(g.nodes[last]["weight"]) > CUT_RATIO):
             cut -= 1
         else:
             break
@@ -108,7 +108,7 @@ def check_drop_back(path, g):
     for i in range(len(path) - 1):
         first = path[i]
         nxt = path[i + 1]
-        if(g.node[nxt]["weight"] / float(g.node[first]["weight"]) > CUT_RATIO):
+        if(g.nodes[nxt]["weight"] / float(g.nodes[first]["weight"]) > CUT_RATIO):
             cut += 1
         else:
             break
@@ -157,7 +157,7 @@ def greedy_assembl(g):
     @param the De Bruijn graph of kmers
     @return the longest debruijn sequence starting by the first kmer
     """
-    start = max(g.nodes, key=lambda x: g.node[x]["weight"])
+    start = max(g.nodes, key=lambda x: g.nodes[x]["weight"])
     path = [start]
 
     right_node = start
@@ -170,7 +170,7 @@ def greedy_assembl(g):
             if(not r_list):
                 right_node = None
             else:
-                right_node = max(r_list, key=lambda x: g.node[x]["weight"])
+                right_node = max(r_list, key=lambda x: g.nodes[x]["weight"])
                 path.append(right_node)
 
         # reverse extension
@@ -181,7 +181,7 @@ def greedy_assembl(g):
                 left_node = None
             else:
 
-                left_node = max(l_list, key=lambda x: g.node[x]["weight"])
+                left_node = max(l_list, key=lambda x: g.nodes[x]["weight"])
                 path = [left_node] + path
     return(path)
 
@@ -230,7 +230,7 @@ def heavy_path(g):
 
     # annotating graph
     for n in hv_path:
-        g.node[n]["path"] = (g.node[n]["path"] + ",heavy").lstrip(",")
+        g.nodes[n]["path"] = (g.nodes[n]["path"] + ",heavy").lstrip(",")
 
     return(hv_path)
 
@@ -243,7 +243,7 @@ def longest_path(g):
 
     # annotating graph
     for n in lg_path:
-        g.node[n]["path"] = (g.node[n]["path"] + ",long").lstrip(",")
+        g.nodes[n]["path"] = (g.nodes[n]["path"] + ",long").lstrip(",")
 
     return(lg_path)
 
@@ -256,7 +256,7 @@ def greedy_path(g):
     gd_path = greedy_assembl(g)
     # annotating graph
     for n in gd_path:
-        g.node[n]["path"] = (g.node[n]["path"] + ",greedy").lstrip(",")
+        g.nodes[n]["path"] = (g.nodes[n]["path"] + ",greedy").lstrip(",")
     return(gd_path)
 
 ##############################################################################
