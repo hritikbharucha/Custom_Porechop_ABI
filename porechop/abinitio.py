@@ -448,7 +448,7 @@ def build_graph(count_file):
 
         # Returning only the biggest connected component
         g = g.subgraph(max(nx.weakly_connected_components(g),
-                       key=lambda x: get_weight(g, x)))
+                           key=lambda x: get_weight(g, x)))
     finally:
         return(g)
 
@@ -517,12 +517,12 @@ def build_adapter(out_file_name, args):
                 adapters["heavy"][which_end] = concat_path(cut_heavy_p)
 
             # I know i should specify the exception, but nx exception seems
-            # to not be caught here
+            # to not be caught if specified here...
             except:
-                print("\t/!\ Could not compute " + which_end +
-                      " adaper using heaviest path  method",
+                print("\t/!\\ Could not compute ", which_end,
+                      "adaper using heaviest path  method",
                       file=sys.stderr)
-                print("\t/!\ The resulting graph probably contains a loop.",
+                print("\t/!\\ The resulting graph probably contains a loop.",
                       file=sys.stderr)
                 adapters["heavy"][which_end] = [""]
 
