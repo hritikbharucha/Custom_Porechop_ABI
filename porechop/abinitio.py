@@ -472,10 +472,10 @@ def build_adapter(out_file_name, args):
     print_dest = args.print_dest
     v = args.verbosity
 
-    adapters = dd(dict)
-    adp = []
+    adapters = dd(dict)  # temporary adapter string dict
+    adp = []  # final adpter object list
 
-    # Failsafe if one end of the adapter can not be build
+    # Failsafe if the graphs for the adapter can not be built
     unable_to_build = False
 
     for which_end in ["start", "end"]:
@@ -501,8 +501,11 @@ def build_adapter(out_file_name, args):
                 cut_greedy_p = start_cut(greedy_p, g)
             elif(which_end == "end"):
                 cut_greedy_p = end_cut(greedy_p, g)
-
-            adapters["greedy"][which_end] = concat_path(cut_greedy_p)
+            # If the greedy path is not empty, concat it in a string
+            if(cut_greedy_p):
+                adapters["greedy"][which_end] = concat_path(cut_greedy_p)
+            else:
+                adapters["greedy"][which_end] = ""
 
             # Heavy adapter
             if(v >= 1):
@@ -514,7 +517,12 @@ def build_adapter(out_file_name, args):
                     cut_heavy_p = start_cut(heavy_p, g)
                 elif(which_end == "end"):
                     cut_heavy_p = end_cut(heavy_p, g)
-                adapters["heavy"][which_end] = concat_path(cut_heavy_p)
+
+                # If the heavy path is not empty, concat it in a string
+                if(cut_heavy_p):
+                    adapters["heavy"][which_end] = concat_path(cut_heavy_p)
+                else:
+                    adapters["heavy"][which_end] = ""
 
             # I know i should specify the exception, but nx exception seems
             # to not be caught if specified here...
@@ -526,7 +534,7 @@ def build_adapter(out_file_name, args):
                       file=sys.stderr)
                 adapters["heavy"][which_end] = [""]
 
-            # Exporting, if required
+            # Exporting graph, if required
             if(args.export_graph is not None):
                 if(v >= 1):
                     print("\tExporting assembly graph", file=print_dest)
@@ -551,8 +559,7 @@ def build_adapter(out_file_name, args):
             if(v >= 1):
                 print("Building adapter object", file=print_dest)
 
-            adp = []
-            # adding adapter if either end was found
+            # Adding adapter if either end was found, for both method
             if(adapters["heavy"]['start'] or adapters["heavy"]['end']):
                 adp.append(
                     Adapter("abinitio_heavy_adapter",
@@ -573,11 +580,16 @@ def build_adapter(out_file_name, args):
             else:
                 print("\t/!\\Greedy adapter was not added to adapter list",
                       file=sys.stderr)
+
             if(v >= 1):
                 print("The inference of adapters sequence is done.",
                       file=print_dest)
     else:
-        print("Unable to build adapter", file=print_dest)
+        print("#################################", file=sys.stderr)
+        print("WARNING - Unable to build graph  ", file=sys.stderr)
+        print("Count file format may be invalid ", file=sys.stderr)
+        print("   No adapter will be returned   ", file=sys.stderr)
+        print("#################################", file=sys.stderr)
     return(adp)
 
 
