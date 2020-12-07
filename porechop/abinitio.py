@@ -239,11 +239,9 @@ def find_median_zone(counts, epsilon):
     for i in range(len(counts) - 1, -1, -1):
         c = counts[i]
         if(c < c_median - epsilon):
-            if(is_zone):
-                s_rng = i
-            else:
-                is_zone = True
-                tmp_s_rng = i
+            is_zone = True
+            s_rng = i
+                
         else:
             if(is_zone):
                 is_zone = False
