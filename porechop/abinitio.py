@@ -22,6 +22,7 @@ import subprocess
 from multiprocessing import cpu_count
 from .adapters import Adapter
 from collections import defaultdict as dd
+from statistics import median, mean
 import networkx as nx
 import sys
 
@@ -30,7 +31,7 @@ import sys
 #                                 CONSTANTS                                  #
 ##############################################################################
 
-CUT_RATIO = 1.05
+CUT_RATIO = 0.075  # /!\ The way this value is has been changed.
 METHODS = ["greedy", "heavy"]
 
 
@@ -74,7 +75,8 @@ def concat_path(path):
 
 
 def check_drop(path, g):
-    """Check if there is a frequency drop in the path
+    """DEPRECATED - see start_cut()
+    Check if there is a frequency drop in the path
     and cut the adapter if necessary.
     This function cut the end of forward adapters.
     @param The path, as a kmer list
@@ -96,7 +98,8 @@ def check_drop(path, g):
 
 
 def check_drop_back(path, g):
-    """Check if there is a frequency drop in the path
+    """DEPRECATED - see end_cut()
+    Check if there is a frequency drop in the path
     and cut the adapter if necessary.
     This function cut the start of reverse adapters.
     @param The path, as a kmer list
@@ -113,6 +116,139 @@ def check_drop_back(path, g):
         else:
             break
     return(path[cut:])
+
+
+def start_cut(start_adp_data, g, w=7):
+    """ Try to find the best place to cut the raw adapter path
+     to get an appropriate adapter.
+    This function cut the end of forward adapters.
+    @param The path, as a kmer list
+    @param The De Bruijn graph.
+    @param (opt) w, window size for sliding median smoothing (default: 7)
+    @return The adjusted adapter path
+    """
+
+    # Data for Start Adapters
+    start_dist = [g.nodes[el]["weight"] for el in start_adp_data]
+
+    # computing start epsilon based on counts
+    start_epsilon = CUT_RATIO * max(start_dist)
+
+    # Sliding median method
+    start_sl_md = sliding_median(start_dist, w)
+    # # Sliding mean method
+    # start_sl_md = sliding_mean(start_dist, w)
+
+    # Simple derivative
+    start_sl_md = simple_deriv(start_sl_md)
+
+    # Finding cutting point
+    # start median zone method
+    smz = find_median_zone(start_sl_md, start_epsilon)
+
+    # Finding the position to cut
+    start_cut = len(start_adp_data) - 1
+    if(smz):
+        start_cut = min(max(smz), start_cut)
+
+    # Returning the cut path
+    return(start_adp_data[0:start_cut])
+
+
+def end_cut(end_adp_data, g, w=7):
+    """ Try to find the best place to cut the raw adapter path
+     to get an appropriate adapter.
+    This function cut the end of end adapters.
+    @param The path, as a kmer list
+    @param The De Bruijn graph.
+    @param (opt) w, window size for sliding median smoothing (default: 7)
+    @return The adjusted adapter path
+    """
+
+    # Fetching weight distribution
+    end_dist = [g.nodes[el]["weight"] for el in end_adp_data]
+
+    # Computing end epsilon based on counts
+    end_epsilon = CUT_RATIO * max(end_dist)
+
+    # Sliding median method
+    end_sl_md = sliding_median(end_dist, w)
+    # # Sliding mean method
+    # end_sl_md = sliding_mean(end_dist, w)
+
+    # Simple derivative
+    end_sl_md = simple_deriv(list(reversed(end_sl_md)))
+
+    # Finding cutting point:
+    # end median zone method
+    emz = find_median_zone(end_sl_md, end_epsilon)
+
+    # re-reversing the end array
+    end_sl_md.reverse()
+    emz = [len(end_sl_md) - (s + 1) for s in emz]
+
+    # Finding the position to cut
+    end_cut = 0
+    if(emz):
+        end_cut = max(0, min(emz) + 1)
+
+    # Returning the cut path
+    return(end_adp_data[end_cut:])
+
+
+def sliding_median(counts, w=7):
+    lc = len(counts)
+    offset = w // 2  # offset to work on "middle" position
+    results = []
+    for i in range(lc):
+        start = max(0, i - offset)
+        end = min(i + offset, lc)
+        # getting on middle position
+        med_rng = counts[start: end]
+        results.append(median(med_rng))
+    return(results)
+
+
+def sliding_mean(counts, w=7):
+    lc = len(counts)
+    offset = w // 2  # offset to work on "middle" position
+    results = []
+    for i in range(lc):
+        start = max(0, i - offset)
+        end = min(i + offset, lc)
+        # getting on middle position
+        med_rng = counts[start: end]
+        results.append(mean(med_rng))
+    return(results)
+
+
+def simple_deriv(counts):
+    lc = len(counts)
+    results = [0]
+    for i in range(1, lc, 1):
+        val = counts[i] - counts[i - 1]
+        results.append(val)
+    return(results)
+
+
+def find_median_zone(counts, epsilon):
+    c_median = median(counts)
+    s_rng = 0  # start of low zone
+    is_zone = False
+    s_zone = []
+    for i in range(len(counts) - 1, -1, -1):
+        c = counts[i]
+        if(c < c_median - epsilon):
+            if(is_zone):
+                s_rng = i
+            else:
+                is_zone = True
+                tmp_s_rng = i
+        else:
+            if(is_zone):
+                is_zone = False
+                s_zone.append(s_rng)
+    return(s_zone)
 
 
 def print_result(adapters, v=1, print_dest=sys.stdout):
@@ -287,7 +423,7 @@ def build_graph(count_file):
                 g.add_node(km, weight=int(nb))  # , path = "" )
 
     except FileNotFoundError:
-        print("\n/!\ Unable to open k-mer count file:", file=sys.stderr)
+        print("\n/!\\ Unable to open k-mer count file:", file=sys.stderr)
         print(count_file, file=sys.stderr)
         print("Either the file was moved, deleted, or filename is invalid.",
               file=sys.stderr)
@@ -328,6 +464,8 @@ def build_adapter(out_file_name, args):
     Porechop can still properly detect adapters if there is a slight
     difference  since it uses a quite low identity threshold of 75%.
     @param A De Bruijn graph with kmer count as weight
+    @param The argparse argument dictionnary from porechop.py
+    @return A list of Adapter objects containing infered adapters.
     """
 
     just_print = args.guess_adapter_only
@@ -360,9 +498,9 @@ def build_adapter(out_file_name, args):
             greedy_p = greedy_path(g)
             cut_greedy_p = []
             if(which_end == "start"):
-                cut_greedy_p = check_drop(greedy_p, g)
+                cut_greedy_p = start_cut(greedy_p, g)
             elif(which_end == "end"):
-                cut_greedy_p = check_drop_back(greedy_p, g)
+                cut_greedy_p = end_cut(greedy_p, g)
 
             adapters["greedy"][which_end] = concat_path(cut_greedy_p)
 
@@ -373,9 +511,9 @@ def build_adapter(out_file_name, args):
                 heavy_p = heavy_path(g)
                 cut_heavy_p = []
                 if(which_end == "start"):
-                    cut_heavy_p = check_drop(heavy_p, g)
+                    cut_heavy_p = start_cut(heavy_p, g)
                 elif(which_end == "end"):
-                    cut_heavy_p = check_drop_back(heavy_p, g)
+                    cut_heavy_p = end_cut(heavy_p, g)
                 adapters["heavy"][which_end] = concat_path(cut_heavy_p)
 
             # I know i should specify the exception, but nx exception seems
@@ -413,18 +551,28 @@ def build_adapter(out_file_name, args):
             if(v >= 1):
                 print("Building adapter object", file=print_dest)
 
-            adp = [Adapter("abinitio_heavy_adapter",
-                           start_sequence=('abinitio_heavy_Top',
-                                           adapters["heavy"]['start']),
-                           end_sequence=('abinitio_heavy_Bottom',
-                                         adapters["heavy"]['end'])),
-
-                   Adapter("abinitio_greedy_adapter",
-                           start_sequence=('abinitio_greedy_Top',
-                                           adapters["greedy"]['start']),
-                           end_sequence=('abinitio_greedy_Bottom',
-                                         adapters["greedy"]['end']))
-                   ]
+            adp = []
+            # adding adapter if either end was found
+            if(adapters["heavy"]['start'] or adapters["heavy"]['end']):
+                adp.append(
+                    Adapter("abinitio_heavy_adapter",
+                            start_sequence=('abinitio_heavy_Top',
+                                            adapters["heavy"]['start']),
+                            end_sequence=('abinitio_heavy_Bottom',
+                                          adapters["heavy"]['end'])))
+            else:
+                print("\t/!\\Heavy adapter was not added to adapter list",
+                      file=sys.stderr)
+            if(adapters["greedy"]['start'] or adapters["greedy"]['end']):
+                adp.append(
+                    Adapter("abinitio_greedy_adapter",
+                            start_sequence=('abinitio_greedy_Top',
+                                            adapters["greedy"]['start']),
+                            end_sequence=('abinitio_greedy_Bottom',
+                                          adapters["greedy"]['end'])))
+            else:
+                print("\t/!\\Greedy adapter was not added to adapter list",
+                      file=sys.stderr)
             if(v >= 1):
                 print("The inference of adapters sequence is done.",
                       file=print_dest)
@@ -447,33 +595,33 @@ def execFindAdapt(args):
     """
 
     # getting args
-    fasta_file = args.input
-    print_dest = args.print_dest
-    v = args.verbosity
+    fasta_file=args.input
+    print_dest=args.print_dest
+    v=args.verbosity
 
     # Temporary files prefix
-    filename_pref = "./tmp/temp_file_"
-    tmpDir = os.path.dirname(filename_pref)
+    filename_pref="./tmp/temp_file_"
+    tmpDir=os.path.dirname(filename_pref)
 
     # Creating tmp folder if not existing
     if(not os.path.exists(tmpDir)):
         os.mkdir(tmpDir)
 
     # Searchng path to adaptFinder
-    adapt_path = os.path.join(os.path.dirname(
+    adapt_path=os.path.join(os.path.dirname(
         os.path.realpath(__file__)), "adaptFinder")
 
     # using custom config file if specified
-    conf_path = os.path.join(os.path.dirname(
+    conf_path=os.path.join(os.path.dirname(
         os.path.realpath(__file__)), "ab_initio.config")
-    conf_path = args.ab_initio_config if args.ab_initio_config else conf_path
-    out_file_name = filename_pref + "approx_kmer_count"
-    nb_thread = str(min(4, cpu_count()))
+    conf_path=args.ab_initio_config if args.ab_initio_config else conf_path
+    out_file_name=filename_pref + "approx_kmer_count"
+    nb_thread=str(min(4, cpu_count()))
     if(v > 0):
-        print("Using config file:" + conf_path, file=print_dest)
+        print("Using config file:" + conf_path, file = print_dest)
 
     # building command
-    command = adapt_path + " " + fasta_file + " --config " + \
+    command=adapt_path + " " + fasta_file + " --config " + \
         conf_path + " -v " + str(v) + " -o " + out_file_name
     if(v > 0):
         print(command)
@@ -482,16 +630,16 @@ def execFindAdapt(args):
     try:
         subprocess.check_call(command.split())
     except SystemError as e:
-        print(e, file=sys.stderr)
+        print(e, file = sys.stderr)
         sys.exit("ERROR: approximate k-mer count failed")
 
     # building the adapter from the count files generated
-    adp = build_adapter(out_file_name, args)
+    adp=build_adapter(out_file_name, args)
 
     return(adp)
 
 
 if __name__ == '__main__':
-    adapt = execFindAdapt(sys.argv[1])
+    adapt=execFindAdapt(sys.argv[1])
     for ad in adapt:
         print(ad.__dict__)
