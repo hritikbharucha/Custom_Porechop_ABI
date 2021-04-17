@@ -340,7 +340,7 @@ def dag_heaviest_path(G):
     dist = {}  # stores [node, distance] pair
     for node in nx.topological_sort(G):
         # pairs of dist,node for all incoming edges
-        pairs = [(dist[v][0] + G.node[v]["weight"], v) for v in G.pred[node]]
+        pairs = [(dist[v][0] + G.nodes[v]["weight"], v) for v in G.pred[node]]
         if pairs:
             dist[node] = max(pairs)
         else:
@@ -523,7 +523,7 @@ def build_adapter(out_file_name, args):
 
             # I know i should specify the exception, but nx exception seems
             # to not be caught if specified here...
-            except:
+            except nx.NetworkXNotImplemented, nx.HasACycle:
                 print("\t/!\\ Could not compute ", which_end,
                       "adaper using heaviest path  method",
                       file=sys.stderr)
