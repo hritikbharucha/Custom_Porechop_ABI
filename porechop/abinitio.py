@@ -270,16 +270,15 @@ def print_result(adapters, v=1, print_dest=sys.stdout):
         msg = meth
         srt = adapters[meth]["start"]
         end = adapters[meth]["end"]
-
-        if(v >= 1):
-            meth += " assembly method"
-            meth = meth.capitalize()
-            srt = "Start:\t" + srt
-            end = "End:\t" + end
-
-        print(msg, file=out)
-        print(srt, file=out)
-        print(end, file=out)
+        if(srt and end):
+            if(v >= 1):
+                meth += " assembly method"
+                meth = meth.capitalize()
+                srt = "Start:\t" + srt
+                end = "End:\t" + end
+            print(msg, file=out)
+            print(srt, file=out)
+            print(end, file=out)
 
 
 ##############################################################################
@@ -530,7 +529,7 @@ def build_adapter(out_file_name, args):
                       file=sys.stderr)
                 print("\t/!\\ The resulting graph probably contains a loop.",
                       file=sys.stderr)
-                adapters["heavy"][which_end] = [""]
+                adapters["heavy"][which_end] = ""
 
             # Exporting graph, if required
             if(args.export_graph is not None):
