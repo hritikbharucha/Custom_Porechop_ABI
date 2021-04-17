@@ -523,7 +523,7 @@ def build_adapter(out_file_name, args):
 
             # I know i should specify the exception, but nx exception seems
             # to not be caught if specified here...
-            except nx.NetworkXNotImplemented, nx.HasACycle:
+            except (nx.NetworkXNotImplemented, nx.HasACycle) as nxE:
                 print("\t/!\\ Could not compute ", which_end,
                       "adaper using heaviest path  method",
                       file=sys.stderr)
