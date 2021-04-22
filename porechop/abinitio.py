@@ -299,7 +299,7 @@ def greedy_assembl(g):
 
         # forward extension
         if(right_node):
-            r_list = list(g.successors(right_node))
+            r_list = [el for el in g.successors(right_node) if el not in path]
             if(not r_list):
                 right_node = None
             else:
@@ -308,7 +308,7 @@ def greedy_assembl(g):
 
         # reverse extension
         if(left_node):
-            l_list = list(g.predecessors(left_node))
+            l_list = [el for el in g.predecessors(left_node) if el not in path]
 
             if(not l_list):
                 left_node = None
@@ -523,7 +523,9 @@ def build_adapter(out_file_name, args):
 
             # I know i should specify the exception, but nx exception seems
             # to not be caught if specified here...
-            except (nx.NetworkXNotImplemented, nx.HasACycle) as nxE:
+            except(nx.exception.NetworkXUnfeasible,
+                   nx.exception.NetworkXNotImplemented,
+                   nx.exception.HasACycle) as nxE:
                 print("\t/!\\ Could not compute ", which_end,
                       "adaper using heaviest path  method",
                       file=sys.stderr)
