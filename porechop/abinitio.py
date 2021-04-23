@@ -270,15 +270,14 @@ def print_result(adapters, v=1, print_dest=sys.stdout):
         msg = meth
         srt = adapters[meth]["start"]
         end = adapters[meth]["end"]
-        if(srt and end):
-            if(v >= 1):
-                meth += " assembly method"
-                meth = meth.capitalize()
-                srt = "Start:\t" + srt
-                end = "End:\t" + end
-            print(msg, file=out)
-            print(srt, file=out)
-            print(end, file=out)
+        if(v >= 1):
+            meth += " assembly method"
+            meth = meth.capitalize()
+            srt = "Start:\t" + srt
+            end = "End:\t" + end
+        print(msg, file=out)
+        print(srt, file=out)
+        print(end, file=out)
 
 
 ##############################################################################
