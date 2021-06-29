@@ -109,6 +109,12 @@ def get_arguments():
                                       'instead of using adapter.py')
     abi_group.add_argument('-go','--guess_adapter_only', action='store_true',
                                       help='Just display the inferred adapters, then quit.')
+    abi_group.add_argument( '-mr' ,'--multi_run', type= int, default=1,
+                                      help='Number of time the approximate count must be performed.\
+                                            Each count is exported separately.')
+    abi_group.add_argument( '-ws' ,'--window_size', type= int, default=3,
+                                      help='Size of the smoothing window used in the drop cut algorithm.\
+                                            (default is 3, set to 1 to disable).')
     abi_group.add_argument( '-abc' ,'--ab_initio_config', type= str,
                                       help='Path to the your custom config file for ab_initio phase (not required for ab-initio)')
     

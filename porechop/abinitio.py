@@ -9,7 +9,7 @@ https://github.com/bonsai-team
 This script is a "wrapper" to use my algorithm to find adapter sequence
 from the reads instead of using the adapter.py static database. This is
 still in its early stage, but do seems to work fairly well.
-A futur, far cleaner version of this script will be edited in order to use
+A futur, far cleaner version of this script NEED to be edited in order to use
 my c++ code "the proper way".
 In order to change the parameters for adaptFinder,
 change the porchop/abinitio.conf file.
@@ -31,8 +31,8 @@ import sys
 #                                 CONSTANTS                                  #
 ##############################################################################
 
-CUT_RATIO = 0.075  # /!\ The way this value is has been changed.
-METHODS = ["greedy", "heavy"]
+CUT_RATIO = 0.05  # How much random variation is allowed for drop cut.
+METHODS = ["greedy", "heavy"]  # Reconstruction methods.
 
 
 ##############################################################################
@@ -44,7 +44,7 @@ def haveOverlap(seq1, seq2):
     """Check if the sequence 1 is a prefix of sequence 2
     @param first sequence
     @param second sequence
-    @return is there an overlap ?
+    @return seq1 and seq2 merged in one sequence on the overlap.
     """
     minOverlap = min(len(seq1), len(seq2)) - 1
     if(seq1[-minOverlap:] == seq2[:minOverlap]):
@@ -54,7 +54,7 @@ def haveOverlap(seq1, seq2):
 
 
 def get_weight(g, path):
-    """Compute the weight of a path in the graph
+    """Compute the weight of a path in an Nx graph
     @param the graph
     @param the path (list of nodes)
     @return the total weight of this path
@@ -147,12 +147,12 @@ def start_cut(start_adp_data, g, w=7):
     smz = find_median_zone(start_sl_md, start_epsilon)
 
     # Finding the position to cut
-    start_cut = len(start_adp_data) - 1
+    s_cut = len(start_adp_data) - 1
     if(smz):
-        start_cut = min(max(smz), start_cut)
+        s_cut = min(max(smz), s_cut)
 
     # Returning the cut path
-    return(start_adp_data[0:start_cut])
+    return(start_adp_data[0:s_cut])
 
 
 def end_cut(end_adp_data, g, w=7):
@@ -188,15 +188,21 @@ def end_cut(end_adp_data, g, w=7):
     emz = [len(end_sl_md) - (s + 1) for s in emz]
 
     # Finding the position to cut
-    end_cut = 0
+    e_cut = 0
     if(emz):
-        end_cut = max(0, min(emz) + 1)
+        e_cut = max(0, min(emz) + 1)
 
     # Returning the cut path
-    return(end_adp_data[end_cut:])
+    return(end_adp_data[e_cut:])
 
 
 def sliding_median(counts, w=7):
+    """ Compute the median of a of each count value using
+    a sliding window approach.
+    @param counts a list of integer
+    @param w the window size
+    @return the median values, in a list.
+    """
     lc = len(counts)
     offset = w // 2  # offset to work on "middle" position
     results = []
@@ -210,6 +216,12 @@ def sliding_median(counts, w=7):
 
 
 def sliding_mean(counts, w=7):
+    """ Compute the mean of a of each count value using
+    a sliding window approach.
+    @param counts a list of integer
+    @param w the window size
+    @return the mean values, in a list.
+    """
     lc = len(counts)
     offset = w // 2  # offset to work on "middle" position
     results = []
@@ -223,6 +235,10 @@ def sliding_mean(counts, w=7):
 
 
 def simple_deriv(counts):
+    """ Compute the difference between consecutives values in a list
+    @param counts a list of integer
+    @return The difference between a value and it's neighbourg.
+    """
     lc = len(counts)
     results = [0]
     for i in range(1, lc, 1):
@@ -232,6 +248,11 @@ def simple_deriv(counts):
 
 
 def find_median_zone(counts, epsilon):
+    """ Find the position in the counts list where the
+    counts raise above a threshold.
+    @param counts the count list
+    @param epsilon margin of acceptable error
+    """
     c_median = median(counts)
     s_rng = 0  # start of low zone
     is_zone = False
@@ -241,7 +262,6 @@ def find_median_zone(counts, epsilon):
         if(c < c_median - epsilon):
             is_zone = True
             s_rng = i
-                
         else:
             if(is_zone):
                 is_zone = False
@@ -287,7 +307,7 @@ def print_result(adapters, v=1, print_dest=sys.stdout):
 def greedy_assembl(g):
     """Greedy assembly method to compute the adapter using the graph as input.
     @param the De Bruijn graph of kmers
-    @return the longest debruijn sequence starting by the first kmer
+    @return the longest debruijn sequence starting by the most frequent kmer
     """
     start = max(g.nodes, key=lambda x: g.nodes[x]["weight"])
     path = [start]
@@ -467,7 +487,7 @@ def build_adapter(out_file_name, args):
     just_print = args.guess_adapter_only
     print_dest = args.print_dest
     v = args.verbosity
-
+    w = args.window_size
     adapters = dd(dict)  # temporary adapter string dict
     adp = []  # final adpter object list
 
@@ -494,9 +514,9 @@ def build_adapter(out_file_name, args):
             greedy_p = greedy_path(g)
             cut_greedy_p = []
             if(which_end == "start"):
-                cut_greedy_p = start_cut(greedy_p, g)
+                cut_greedy_p = start_cut(greedy_p, g, w)
             elif(which_end == "end"):
-                cut_greedy_p = end_cut(greedy_p, g)
+                cut_greedy_p = end_cut(greedy_p, g, w)
             # If the greedy path is not empty, concat it in a string
             if(cut_greedy_p):
                 adapters["greedy"][which_end] = concat_path(cut_greedy_p)
@@ -510,9 +530,9 @@ def build_adapter(out_file_name, args):
                 heavy_p = heavy_path(g)
                 cut_heavy_p = []
                 if(which_end == "start"):
-                    cut_heavy_p = start_cut(heavy_p, g)
+                    cut_heavy_p = start_cut(heavy_p, g, w)
                 elif(which_end == "end"):
-                    cut_heavy_p = end_cut(heavy_p, g)
+                    cut_heavy_p = end_cut(heavy_p, g, w)
 
                 # If the heavy path is not empty, concat it in a string
                 if(cut_heavy_p):
@@ -605,33 +625,33 @@ def execFindAdapt(args):
     """
 
     # getting args
-    fasta_file=args.input
-    print_dest=args.print_dest
-    v=args.verbosity
+    fasta_file = args.input
+    print_dest = args.print_dest
+    v = args.verbosity
 
     # Temporary files prefix
-    filename_pref="./tmp/temp_file_"
-    tmpDir=os.path.dirname(filename_pref)
+    filename_pref = "./tmp/temp_file_"
+    tmpDir = os.path.dirname(filename_pref)
 
     # Creating tmp folder if not existing
     if(not os.path.exists(tmpDir)):
         os.mkdir(tmpDir)
 
     # Searchng path to adaptFinder
-    adapt_path=os.path.join(os.path.dirname(
+    adapt_path = os.path.join(os.path.dirname(
         os.path.realpath(__file__)), "adaptFinder")
 
     # using custom config file if specified
-    conf_path=os.path.join(os.path.dirname(
+    conf_path = os.path.join(os.path.dirname(
         os.path.realpath(__file__)), "ab_initio.config")
-    conf_path=args.ab_initio_config if args.ab_initio_config else conf_path
-    out_file_name=filename_pref + "approx_kmer_count"
-    nb_thread=str(min(4, cpu_count()))
+    conf_path = args.ab_initio_config if args.ab_initio_config else conf_path
+    out_file_name = filename_pref + "approx_kmer_count"
+    nb_thread = str(min(4, cpu_count()))
     if(v > 0):
-        print("Using config file:" + conf_path, file = print_dest)
+        print("Using config file:" + conf_path, file=print_dest)
 
     # building command
-    command=adapt_path + " " + fasta_file + " --config " + \
+    command = adapt_path + " " + fasta_file + " --config " + \
         conf_path + " -v " + str(v) + " -o " + out_file_name
     if(v > 0):
         print(command)
@@ -640,16 +660,16 @@ def execFindAdapt(args):
     try:
         subprocess.check_call(command.split())
     except SystemError as e:
-        print(e, file = sys.stderr)
+        print(e, file=sys.stderr)
         sys.exit("ERROR: approximate k-mer count failed")
 
     # building the adapter from the count files generated
-    adp=build_adapter(out_file_name, args)
+    adp = build_adapter(out_file_name, args)
 
     return(adp)
 
 
 if __name__ == '__main__':
-    adapt=execFindAdapt(sys.argv[1])
+    adapt = execFindAdapt(sys.argv[1])
     for ad in adapt:
         print(ad.__dict__)
