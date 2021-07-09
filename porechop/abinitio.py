@@ -832,7 +832,7 @@ def consensus_adapter(args, prefix, v, print_dest):
             print("consensus step done", file=print_dest)
         if(args.export_consensus):
             try:
-                out = open(args.export_consensus, "w")
+                out = open(args.export_consensus, "at")
             except FileNotFoundError:
                 print("Could not export consensus file to", file=sys.stderr)
                 print(args.export_consensus)
