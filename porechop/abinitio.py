@@ -21,6 +21,7 @@ import os
 import subprocess
 from multiprocessing import cpu_count
 from .adapters import Adapter
+from .consensus import find_consensus, build_consensus_graph
 from collections import defaultdict as dd
 from statistics import median, mean
 import networkx as nx
@@ -33,6 +34,7 @@ import sys
 
 CUT_RATIO = 0.05  # How much random variation is allowed for drop cut.
 METHODS = ["greedy", "heavy"]  # Reconstruction methods.
+ENDS = ["start", "end"]        # Possible ends key.
 
 
 ##############################################################################
@@ -269,10 +271,10 @@ def find_median_zone(counts, epsilon):
     return(s_zone)
 
 
-def print_result(adapters, v=1, print_dest=sys.stdout):
+def print_result(adapters, v, print_dest=sys.stdout):
     """Display the result, adjusting format depending on selected verbosity
     @param an adapter dictionnary, using appropriate methods as keys
-    @param v, the verbosity level, default to 1
+    @param v, the verbosity level
     @param print destination, can be custom, but stdout is default
     """
 
@@ -298,6 +300,36 @@ def print_result(adapters, v=1, print_dest=sys.stdout):
         print(msg, file=out)
         print(srt, file=out)
         print(end, file=out)
+
+
+def print_adapter_dict(adapters, print_dest=sys.stderr):
+    """Display the content of adapter counting dictionnaries.
+    @param an adapter dictionnary, using appropriate methods as keys
+    @param print destination, can be custom, but stdout is default
+    """
+
+    global METHODS
+
+    out = print_dest
+    for meth in METHODS:
+        srt, end = "", ""
+        if(meth in adapters.keys()):
+            msg = meth
+            if("start") in adapters[meth].keys():
+                for k, v in adapters[meth]["start"].items():
+                    srt += f"{k}: {v}\n"
+            if("end") in adapters[meth].keys():
+                for k, v in adapters[meth]["end"].items():
+                    end += f"{k}: {v}\n"
+
+            meth += " assembly method"
+            meth = meth.capitalize()
+            srt = "Start:\n" + srt
+            end = "End:\n" + end
+
+            print(msg, file=out)
+            print(srt, file=out)
+            print(end, file=out)
 
 
 ##############################################################################
@@ -473,6 +505,80 @@ def build_graph(count_file):
 ##############################################################################
 
 
+def generic_build(method_fct, name, g, adapters, which_end, v, w, print_dest):
+    """Generic function used to build adapter from a path in the graph g.
+    This function need a path building function (which returns a list of
+    consecutive overlapping k-mers). The resulting adapter is then
+    added in the supplied adapters dictionnary for further processing.
+    """
+    if(v >= 1):
+        print(f"\tBuilding {name} {which_end} adapter", file=print_dest)
+
+    try:
+        method_p = method_fct(g)
+    except(nx.exception.NetworkXUnfeasible,
+           nx.exception.NetworkXNotImplemented,
+           nx.exception.HasACycle) as nxE:
+
+        print(f"\t/!\\Could not compute {which_end} adaper with {name} method",
+              file=sys.stderr)
+        print("\t/!\\ The resulting graph probably contains a loop.",
+              file=sys.stderr)
+        print("\t/!\\ For more details, read the error report below;\n",
+              file=sys.stderr)
+        print(nxE, file=sys.stderr)
+        adapters[name][which_end] = ""
+
+    else:
+        cut_method_p = []
+        if(which_end == "start"):
+            cut_method_p = start_cut(method_p, g, w)
+        elif(which_end == "end"):
+            cut_method_p = end_cut(method_p, g, w)
+        # If the method path is not empty, concat it in a string
+        if(cut_method_p):
+            adapters[name][which_end] = concat_path(cut_method_p)
+        else:
+            adapters[name][which_end] = ""
+
+
+def make_adapter_object(adapters, v, print_dest):
+    adp = []
+    #################################################################
+    # RESULT EXPORT
+    #
+    # If we just need to print the adapter
+    if(v >= 1):
+        print("Building adapter object", file=print_dest)
+
+    # Adding adapter if either end was found, for both method
+    if(adapters["heavy"]['start'] or adapters["heavy"]['end']):
+        adp.append(
+            Adapter("abinitio_heavy_adapter",
+                    start_sequence=('abinitio_heavy_Top',
+                                    adapters["heavy"]['start']),
+                    end_sequence=('abinitio_heavy_Bottom',
+                                  adapters["heavy"]['end'])))
+    else:
+        print("\t/!\\Heavy adapter was not added to adapter list",
+              file=sys.stderr)
+    if(adapters["greedy"]['start'] or adapters["greedy"]['end']):
+        adp.append(
+            Adapter("abinitio_greedy_adapter",
+                    start_sequence=('abinitio_greedy_Top',
+                                    adapters["greedy"]['start']),
+                    end_sequence=('abinitio_greedy_Bottom',
+                                  adapters["greedy"]['end'])))
+    else:
+        print("\t/!\\Greedy adapter was not added to adapter list",
+              file=sys.stderr)
+
+    if(v >= 1):
+        print("The inference of adapters sequence is done.",
+              file=print_dest)
+    return(adp)
+
+
 def build_adapter(out_file_name, args):
     """Building adapters from counts using different method:
         - Building a Debruijn graph and searching heaviest path
@@ -484,17 +590,15 @@ def build_adapter(out_file_name, args):
     @return A list of Adapter objects containing infered adapters.
     """
 
-    just_print = args.guess_adapter_only
     print_dest = args.print_dest
     v = args.verbosity
     w = args.window_size
     adapters = dd(dict)  # temporary adapter string dict
-    adp = []  # final adpter object list
 
     # Failsafe if the graphs for the adapter can not be built
     unable_to_build = False
 
-    for which_end in ["start", "end"]:
+    for which_end in ENDS:
         if(v >= 1):
             print("Assembling " + which_end + " adapters", file=print_dest)
 
@@ -504,53 +608,26 @@ def build_adapter(out_file_name, args):
         # Checking graph is properly build
         if(not nx.is_empty(g)):
 
-            # preping for anotation
+            # preping for automatic anotation
             nx.set_node_attributes(g, "", "path")
 
             # Greedy Adapter
-            if(v >= 1):
-                print("\tBuilding greedy adapter", file=print_dest)
-
-            greedy_p = greedy_path(g)
-            cut_greedy_p = []
-            if(which_end == "start"):
-                cut_greedy_p = start_cut(greedy_p, g, w)
-            elif(which_end == "end"):
-                cut_greedy_p = end_cut(greedy_p, g, w)
-            # If the greedy path is not empty, concat it in a string
-            if(cut_greedy_p):
-                adapters["greedy"][which_end] = concat_path(cut_greedy_p)
-            else:
-                adapters["greedy"][which_end] = ""
+            generic_build(greedy_path, "greedy",
+                          g,
+                          adapters,
+                          which_end,
+                          v,
+                          w,
+                          print_dest)
 
             # Heavy adapter
-            if(v >= 1):
-                print("\tBuilding heavy path adapter", file=print_dest)
-            try:
-                heavy_p = heavy_path(g)
-                cut_heavy_p = []
-                if(which_end == "start"):
-                    cut_heavy_p = start_cut(heavy_p, g, w)
-                elif(which_end == "end"):
-                    cut_heavy_p = end_cut(heavy_p, g, w)
-
-                # If the heavy path is not empty, concat it in a string
-                if(cut_heavy_p):
-                    adapters["heavy"][which_end] = concat_path(cut_heavy_p)
-                else:
-                    adapters["heavy"][which_end] = ""
-
-            # I know i should specify the exception, but nx exception seems
-            # to not be caught if specified here...
-            except(nx.exception.NetworkXUnfeasible,
-                   nx.exception.NetworkXNotImplemented,
-                   nx.exception.HasACycle) as nxE:
-                print("\t/!\\ Could not compute ", which_end,
-                      "adaper using heaviest path  method",
-                      file=sys.stderr)
-                print("\t/!\\ The resulting graph probably contains a loop.",
-                      file=sys.stderr)
-                adapters["heavy"][which_end] = ""
+            generic_build(heavy_path, "heavy",
+                          g,
+                          adapters,
+                          which_end,
+                          v,
+                          w,
+                          print_dest)
 
             # Exporting graph, if required
             if(args.export_graph is not None):
@@ -568,47 +645,213 @@ def build_adapter(out_file_name, args):
         else:
             unable_to_build = True
 
-    if(not unable_to_build):
-        # If we just need to print the adapter
-        if(just_print):
-            print_result(adapters, v, print_dest)
-        # If we need to use them, getting back to porechop objects
-        else:
-            if(v >= 1):
-                print("Building adapter object", file=print_dest)
-
-            # Adding adapter if either end was found, for both method
-            if(adapters["heavy"]['start'] or adapters["heavy"]['end']):
-                adp.append(
-                    Adapter("abinitio_heavy_adapter",
-                            start_sequence=('abinitio_heavy_Top',
-                                            adapters["heavy"]['start']),
-                            end_sequence=('abinitio_heavy_Bottom',
-                                          adapters["heavy"]['end'])))
-            else:
-                print("\t/!\\Heavy adapter was not added to adapter list",
-                      file=sys.stderr)
-            if(adapters["greedy"]['start'] or adapters["greedy"]['end']):
-                adp.append(
-                    Adapter("abinitio_greedy_adapter",
-                            start_sequence=('abinitio_greedy_Top',
-                                            adapters["greedy"]['start']),
-                            end_sequence=('abinitio_greedy_Bottom',
-                                          adapters["greedy"]['end'])))
-            else:
-                print("\t/!\\Greedy adapter was not added to adapter list",
-                      file=sys.stderr)
-
-            if(v >= 1):
-                print("The inference of adapters sequence is done.",
-                      file=print_dest)
-    else:
+    if(unable_to_build):
         print("#################################", file=sys.stderr)
         print("WARNING - Unable to build graph  ", file=sys.stderr)
         print("Count file format may be invalid ", file=sys.stderr)
         print("   No adapter will be returned   ", file=sys.stderr)
         print("#################################", file=sys.stderr)
-    return(adp)
+
+    return(adapters)
+
+##############################################################################
+#                            Multi Run / Consensus                           #
+##############################################################################
+
+
+def insert_adapter_in_adpDict(adapter, adpDict):
+    """Insert an adapter in an adapter collection dictionnary
+    @param adapter An nested adapter dictionnary (method used -> start/end)
+    @param adpDict A collection of previous adapter (includes adp frequency)
+    """
+    for method in adapter.keys():
+        adp_ends = adapter[method]
+        for which_end in adp_ends.keys():
+            if(method not in adpDict.keys()):
+                adpDict[method] = {}
+            if(which_end not in adpDict[method].keys()):
+                adpDict[method][which_end] = {}
+            the_adapter = adapter[method][which_end]
+            if(the_adapter in adpDict[method][which_end].keys()):
+                adpDict[method][which_end][the_adapter] += 1
+            else:
+                adpDict[method][which_end][the_adapter] = 1
+
+
+def find_general_consensus(adpDict):
+    """ Find a consensus for each method and end of adapter sequence.
+    """
+
+
+def consensus_adapter(args, prefix, v, print_dest):
+    """ Try to find the fittest adapter for the dataset by running multiple
+    adapter reconstruction and building a consensus.
+    We first try 10 runs, and keep the adapter if a perfectly stable consensus
+    is found immediatly. Otherwise, 20 other runs are launched and the adapter
+    sequence is build from a consensus of the 30 runs.
+    """
+
+    # Final adapters placeholders
+    adp = []
+    adapters = {}
+
+    # Consensus adapter placeholder
+    adpDict = {}
+
+    #################################################################
+    # PREPARING FILE SYSTEM
+    #
+    # Searching path to adaptFinder
+    adapt_path = os.path.join(os.path.dirname(
+        os.path.realpath(__file__)), "adaptFinder")
+
+    # Using custom config file if specified
+    conf_path = os.path.join(os.path.dirname(
+        os.path.realpath(__file__)), "ab_initio.config")
+    conf_path = args.ab_initio_config if args.ab_initio_config else conf_path
+
+    # Input filename
+    fasta_file = args.input
+
+    # Defining output filename prefix
+    out_file_name = prefix + "approx_kmer_count"
+
+    # TODO: Make number of thread adjustable.
+    nb_thread = str(min(4, cpu_count()))
+
+    # if we only need to print the inferred adapter
+    just_print = args.guess_adapter_only
+
+    #################################################################
+    # CONSENSUS BUILDING
+    #
+    # Starting number of runs
+    nb_run = args.multi_run
+    # While we have no consensus, build new runs.
+    consensus_found = False
+    # First batch need to have 100% consensus, else we rerun
+    first_batch_done = False
+    # Unless an error occured.
+    build_error = False
+    while not consensus_found and not build_error:
+
+        # Building command line for adaptFinder
+        command = adapt_path + " " + fasta_file + \
+                   f" -v {v}" + \
+                   f" --config {conf_path}" + \
+                   f" -o {out_file_name}" + \
+                   f" -mr {nb_run}" + \
+                   f" -nt {nb_thread}"
+        # DEBUG
+        # print("COMMAND LINE READY", file=print_dest)
+        if(v > 0):
+            if(not first_batch_done):
+                print(f"Starting with a {nb_run} run batch.", file=print_dest)
+            else:
+                print(f"Following with a {nb_run} run batch.", file=print_dest)
+            print("Using config file:" + conf_path, file=print_dest)
+            print("Command line:\n", command,
+                  file=print_dest)
+
+        # DEBUG
+        # print("BEFORE SUBPROCESS", file=print_dest)
+        try:
+            # DEBUG
+            # print("SUBPROCESS TRY", file=print_dest)
+            subprocess.check_call(command.split())
+            # subprocess.check_call(command.split(), stdout=print_dest)
+            # subprocess.run(command.split(), check=True)
+        except SystemError as e:
+            print("\n#####################################",
+                  file=sys.stderr)
+            print("ERROR: approximate k-mer count failed\n" + e,
+                  file=sys.stderr)
+            print("#####################################\n",
+                  file=sys.stderr)
+            build_error = True
+            sys.exit(1)
+        else:
+            # DEBUG
+            # print("SUBPROCESS SUCCESS!", file=print_dest)
+            # Building the adapter for each run in the batch
+            for i in range(nb_run):
+                current_adapter = build_adapter(out_file_name + f"_{i}", args)
+                # storing adapters
+                insert_adapter_in_adpDict(current_adapter, adpDict)
+
+            # If this is the first run:
+            if(not first_batch_done):
+                first_batch_done = True
+                consensus_found = True
+                # Testing if we have a consensus
+                for m in adpDict.keys():
+                    adapters[m] = {}
+                    tmp = {}
+                    for e in adpDict[m].keys():
+                        found = adpDict[m][e]
+                        for a in found.keys():
+                            # we only consider the consensus is found
+                            # if all found adapter are the same in all
+                            # runs
+                            consensus_found &= found[a] == nb_run
+                        best_adp = max(found.keys(), key=lambda x: found[x])
+                        tmp[e] = best_adp
+
+                    adapters[m] = tmp
+
+            # If we are at the second run, we need to find a consensus
+            else:
+                consensus_found = True
+                # for each method and ends
+                for m in adpDict.keys():
+                    adapters[m] = {}
+                    tmp = {}
+                    for e in adpDict[m].keys():
+                        g = build_consensus_graph(adpDict[m][e])
+                        path = find_consensus(g, nb_run)
+                        tmp[e] = concat_path(path)
+                    adapters[m] = tmp
+
+            # Do we need to rerun ?
+            if(not consensus_found):
+                # If a 100% consensus is not found at first,
+                # we increase the number of run and add those results
+                # to current adapter collection (default: 20)
+                nb_run = args.consensus_run
+                out_file_name += "_sup"
+                print("/!\\\tMore runs are required to build consensus.",
+                      file=sys.stderr)
+                print(f"/!\\\tSetting number of run to {nb_run}.",
+                      file=sys.stderr)
+                print("/!\\\tCurrent adapter distribution:",
+                      file=sys.stderr)
+                print_adapter_dict(adpDict, sys.stderr)
+
+    if(consensus_found):
+        if(v > 0):
+            print("consensus step done", file=print_dest)
+        if(args.export_consensus):
+            try:
+                out = open(args.export_consensus, "w")
+            except FileNotFoundError:
+                print("Could not export consensus file to", file=sys.stderr)
+                print(args.export_consensus)
+            else:
+                print_adapter_dict(adpDict, out)
+                out.close()
+
+    #################################################################
+    # RESULT EXPORT
+    #
+    # If we just need to print the adapter
+    if(just_print):
+        print_result(adapters, v, print_dest)
+
+    # If we need to use them, we build porechop Adapter objects
+    else:
+        adp = make_adapter_object(adapters, v, print_dest)
+
+    return adp
 
 
 ##############################################################################
@@ -625,7 +868,6 @@ def execFindAdapt(args):
     """
 
     # getting args
-    fasta_file = args.input
     print_dest = args.print_dest
     v = args.verbosity
 
@@ -637,34 +879,14 @@ def execFindAdapt(args):
     if(not os.path.exists(tmpDir)):
         os.mkdir(tmpDir)
 
-    # Searchng path to adaptFinder
-    adapt_path = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), "adaptFinder")
-
-    # using custom config file if specified
-    conf_path = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), "ab_initio.config")
-    conf_path = args.ab_initio_config if args.ab_initio_config else conf_path
-    out_file_name = filename_pref + "approx_kmer_count"
-    nb_thread = str(min(4, cpu_count()))
-    if(v > 0):
-        print("Using config file:" + conf_path, file=print_dest)
-
-    # building command
-    command = adapt_path + " " + fasta_file + " --config " + \
-        conf_path + " -v " + str(v) + " -o " + out_file_name
-    if(v > 0):
-        print(command)
-
-    # executing adapter finder algorithm
-    try:
-        subprocess.check_call(command.split())
-    except SystemError as e:
-        print(e, file=sys.stderr)
-        sys.exit("ERROR: approximate k-mer count failed")
-
-    # building the adapter from the count files generated
-    adp = build_adapter(out_file_name, args)
+    # If multiple run are required:
+    if(args.multi_run > 1):
+        # executing consensus adapter inference algorithm
+        adp = consensus_adapter(args, filename_pref, v, print_dest)
+    else:
+        # Or regular adapterinference algorithm
+        adapters = build_adapter(args, filename_pref, v, print_dest)
+        adp = make_adapter_object(adapters, v, print_dest)
 
     return(adp)
 
