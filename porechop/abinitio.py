@@ -891,6 +891,8 @@ def launch_ab_initio(args):
     filename_pref = "./tmp/temp_file_"
     tmpDir = os.path.dirname(filename_pref)
 
+    # temp adptater object placeholder
+    adp = []
     # Creating tmp folder if not existing
     if(not os.path.exists(tmpDir)):
         os.mkdir(tmpDir)
@@ -900,10 +902,16 @@ def launch_ab_initio(args):
         # executing consensus adapter inference algorithm
         adp = consensus_adapter(args, filename_pref, v, print_dest)
     else:
-        # Or regular adapterinference algorithm
+        # Or regular adapter inference algorithm
         out_file_name = filename_pref + "approx_kmer_count"
         adapters = build_adapter(args, out_file_name, v, print_dest)
-        adp = make_adapter_object(adapters, v, print_dest)
+        # if we need to just print the adapter, do it
+        if(args.guess_adapter_only):
+            print_result(adapters, v, print_dest)
+        # else export adapter as Adapter object
+        else:
+            adp = make_adapter_object(adapters, v, print_dest)
+
     return(adp)
 
 
