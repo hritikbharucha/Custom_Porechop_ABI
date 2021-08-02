@@ -579,7 +579,7 @@ def make_adapter_object(adapters, v, print_dest):
     return(adp)
 
 
-def build_adapter(out_file_name, args):
+def build_adapter(args, out_file_name, v, print_dest):
     """Building adapters from counts using different method:
         - Building a Debruijn graph and searching heaviest path
         - Greedy assembly based on kmer rank (most frequent first)
@@ -590,8 +590,6 @@ def build_adapter(out_file_name, args):
     @return A list of Adapter objects containing infered adapters.
     """
 
-    print_dest = args.print_dest
-    v = args.verbosity
     w = args.window_size
     adapters = dd(dict)  # temporary adapter string dict
 
@@ -619,7 +617,6 @@ def build_adapter(out_file_name, args):
                           v,
                           w,
                           print_dest)
-
             # Heavy adapter
             generic_build(heavy_path, "heavy",
                           g,
@@ -633,7 +630,6 @@ def build_adapter(out_file_name, args):
             if(args.export_graph is not None):
                 if(v >= 1):
                     print("\tExporting assembly graph", file=print_dest)
-
                 base = "_adapter_graph"
                 if(".graphml" in args.export_graph):
                     base = "_" + os.path.basename(args.export_graph)
@@ -726,22 +722,22 @@ def consensus_adapter(args, prefix, v, print_dest):
     # CONSENSUS BUILDING
     #
     # Starting number of runs
-    nb_run = args.multi_run
+    nb_run=args.multi_run
     # While we have no consensus, build new runs.
-    consensus_found = False
+    consensus_found=False
     # First batch need to have 100% consensus, else we rerun
-    first_batch_done = False
+    first_batch_done=False
     # Unless an error occured.
-    build_error = False
+    build_error=False
     while not consensus_found and not build_error:
 
         # Building command line for adaptFinder
-        command = adapt_path + " " + fasta_file + \
-                   f" -v {v}" + \
-                   f" --config {conf_path}" + \
-                   f" -o {out_file_name}" + \
-                   f" -mr {nb_run}" + \
-                   f" -nt {nb_thread}"
+        command=adapt_path + " " + fasta_file + \
+                f" -v {v}" + \
+                f" --config {conf_path}" + \
+                f" -o {out_file_name}" + \
+                f" -mr {nb_run}" + \
+                f" -nt {nb_thread}"
         # DEBUG
         # print("COMMAND LINE READY", file=print_dest)
         if(v > 0):
