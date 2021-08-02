@@ -6,15 +6,25 @@ quentin.bonenfant@gmail.com
 https://github.com/qbonenfant
 https://github.com/bonsai-team
 
-This script is a "wrapper" to use my algorithm to find adapter sequence
-from the reads instead of using the adapter.py static database. This is
-still in its early stage, but do seems to work fairly well.
-A futur, far cleaner version of this script NEED to be edited in order to use
-my c++ code "the proper way".
-In order to change the parameters for adaptFinder,
-change the porchop/abinitio.conf file.
+This script evolved from the wrapper used to call the adaptFinder 
+algorithm, which goal is to find adapter sequence k-mers.
+We are able to infer adapter sequence from the reads instead of using
+the adapter.py static database (unsupported since 2018) of native Porechop.
+In order to change default parameters for adaptFinder, change the config
+file porchop/abinitio.conf or pass a custom config file based on the same
+syntax using -abc / --ab_initio_config
 
 This works has been funded by the french National Ressearch Agency (ANR).
+
+This file is part of Porechop_ABI. Porechop_ABI is free software:
+you can redistribute it and/or modify it under the terms of the GNU
+General Public License as published by the Free Software Foundation, either
+version 3 of the License, or (at your option) any later version. Porechop is
+distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with
+Porechop_ABI. If not, see <http://www.gnu.org/licenses/>.
 """
 
 import os
@@ -26,6 +36,7 @@ from collections import defaultdict as dd
 from statistics import median, mean
 import networkx as nx
 import sys
+from .arg_parser import get_arguments
 
 
 ##############################################################################
@@ -505,6 +516,58 @@ def build_graph(count_file):
 ##############################################################################
 
 
+def execFindAdapt(args, out_file_name, mr, v, print_dest):
+
+    #################################################################
+    # PREPARING FILE SYSTEM
+    #
+    # Searching path to adaptFinder
+    adapt_path = os.path.join(os.path.dirname(
+        os.path.realpath(__file__)), "adaptFinder")
+
+    # Using custom config file if specified
+    conf_path = os.path.join(os.path.dirname(
+        os.path.realpath(__file__)), "ab_initio.config")
+    conf_path = args.ab_initio_config if args.ab_initio_config else conf_path
+
+    # Input filename
+    fasta_file = args.input
+
+    # TODO: Make number of thread adjustable.
+    nb_thread = str(min(4, cpu_count()))
+
+    # Building command line for adaptFinder
+    command = adapt_path + " " + fasta_file + \
+        f" -v {v}" + \
+        f" --config {conf_path}" + \
+        f" -o {out_file_name}" + \
+        f" -nt {nb_thread}"
+
+    # if multi run, add mr flag
+    if(mr > 1):
+        command += f" -mr {mr}"
+
+    if(v > 0):
+        print("Using config file:" + conf_path, file=print_dest)
+        print("Command line:\n", command,
+              file=print_dest)
+
+    try:
+        # DEBUG
+        # print("SUBPROCESS TRY", file=print_dest)
+        subprocess.check_call(command.split())
+        # subprocess.check_call(command.split(), stdout=print_dest)
+        # subprocess.run(command.split(), check=True)
+    except SystemError as e:
+        print("\n#####################################",
+              file=sys.stderr)
+        print("ERROR: approximate k-mer count failed\n" + e,
+              file=sys.stderr)
+        print("#####################################\n",
+              file=sys.stderr)
+        sys.exit(1)
+
+
 def generic_build(method_fct, name, g, adapters, which_end, v, w, print_dest):
     """Generic function used to build adapter from a path in the graph g.
     This function need a path building function (which returns a list of
@@ -593,6 +656,9 @@ def build_adapter(args, out_file_name, v, print_dest):
     w = args.window_size
     adapters = dd(dict)  # temporary adapter string dict
 
+    # Launchiong adaptFinder in simple mode
+    execFindAdapt(args, out_file_name, 1, v, print_dest)
+
     # Failsafe if the graphs for the adapter can not be built
     unable_to_build = False
 
@@ -648,7 +714,7 @@ def build_adapter(args, out_file_name, v, print_dest):
         print("   No adapter will be returned   ", file=sys.stderr)
         print("#################################", file=sys.stderr)
 
-    return(adapters)
+    return adapters
 
 ##############################################################################
 #                            Multi Run / Consensus                           #
@@ -694,134 +760,89 @@ def consensus_adapter(args, prefix, v, print_dest):
     # Consensus adapter placeholder
     adpDict = {}
 
-    #################################################################
-    # PREPARING FILE SYSTEM
-    #
-    # Searching path to adaptFinder
-    adapt_path = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), "adaptFinder")
-
-    # Using custom config file if specified
-    conf_path = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), "ab_initio.config")
-    conf_path = args.ab_initio_config if args.ab_initio_config else conf_path
-
-    # Input filename
-    fasta_file = args.input
-
-    # Defining output filename prefix
-    out_file_name = prefix + "approx_kmer_count"
-
-    # TODO: Make number of thread adjustable.
-    nb_thread = str(min(4, cpu_count()))
-
     # if we only need to print the inferred adapter
     just_print = args.guess_adapter_only
+
+    # Defining output filename basename
+    out_file_name = prefix + "approx_kmer_count"
 
     #################################################################
     # CONSENSUS BUILDING
     #
     # Starting number of runs
-    nb_run=args.multi_run
+    nb_run = args.multi_run
     # While we have no consensus, build new runs.
-    consensus_found=False
+    consensus_found = False
     # First batch need to have 100% consensus, else we rerun
-    first_batch_done=False
+    first_batch_done = False
     # Unless an error occured.
-    build_error=False
-    while not consensus_found and not build_error:
+    build_error = False
 
-        # Building command line for adaptFinder
-        command=adapt_path + " " + fasta_file + \
-                f" -v {v}" + \
-                f" --config {conf_path}" + \
-                f" -o {out_file_name}" + \
-                f" -mr {nb_run}" + \
-                f" -nt {nb_thread}"
-        # DEBUG
-        # print("COMMAND LINE READY", file=print_dest)
+    while not consensus_found and not build_error:
         if(v > 0):
             if(not first_batch_done):
                 print(f"Starting with a {nb_run} run batch.", file=print_dest)
             else:
-                print(f"Following with a {nb_run} run batch.", file=print_dest)
-            print("Using config file:" + conf_path, file=print_dest)
-            print("Command line:\n", command,
-                  file=print_dest)
+                print(f"Following with a {nb_run} run batch.", file=print_dest)    
 
-        # DEBUG
-        # print("BEFORE SUBPROCESS", file=print_dest)
-        try:
-            # DEBUG
-            # print("SUBPROCESS TRY", file=print_dest)
-            subprocess.check_call(command.split())
-            # subprocess.check_call(command.split(), stdout=print_dest)
-            # subprocess.run(command.split(), check=True)
-        except SystemError as e:
-            print("\n#####################################",
-                  file=sys.stderr)
-            print("ERROR: approximate k-mer count failed\n" + e,
-                  file=sys.stderr)
-            print("#####################################\n",
-                  file=sys.stderr)
-            build_error = True
-            sys.exit(1)
+        # Launching adaptFinder in multi run mode
+        execFindAdapt(args, out_file_name, nb_run, v, print_dest)
+
+        for i in range(nb_run):
+            current_adapter = build_adapter(args,
+                                            out_file_name + f"_{i}",
+                                            v,
+                                            print_dest)
+            # storing adapters
+            insert_adapter_in_adpDict(current_adapter, adpDict)
+
+        # If this is the first run:
+        if(not first_batch_done):
+            first_batch_done = True
+            consensus_found = True
+            # Testing if we have a consensus
+            for m in adpDict.keys():
+                adapters[m] = {}
+                tmp = {}
+                for e in adpDict[m].keys():
+                    found = adpDict[m][e]
+                    for a in found.keys():
+                        # we only consider the consensus is found
+                        # if all found adapter are the same in all
+                        # runs
+                        consensus_found &= found[a] == nb_run
+                    best_adp = max(found.keys(), key=lambda x: found[x])
+                    tmp[e] = best_adp
+
+                adapters[m] = tmp
+
+        # If we are at the second run, we need to find a consensus
         else:
-            # DEBUG
-            # print("SUBPROCESS SUCCESS!", file=print_dest)
-            # Building the adapter for each run in the batch
-            for i in range(nb_run):
-                current_adapter = build_adapter(out_file_name + f"_{i}", args)
-                # storing adapters
-                insert_adapter_in_adpDict(current_adapter, adpDict)
+            consensus_found = True
+            # for each method and ends
+            for m in adpDict.keys():
+                adapters[m] = {}
+                tmp = {}
+                for e in adpDict[m].keys():
+                    g = build_consensus_graph(adpDict[m][e])
+                    path = find_consensus(g, nb_run)
+                    tmp[e] = concat_path(path)
+                adapters[m] = tmp
 
-            # If this is the first run:
-            if(not first_batch_done):
-                first_batch_done = True
-                consensus_found = True
-                # Testing if we have a consensus
-                for m in adpDict.keys():
-                    adapters[m] = {}
-                    tmp = {}
-                    for e in adpDict[m].keys():
-                        found = adpDict[m][e]
-                        for a in found.keys():
-                            # we only consider the consensus is found
-                            # if all found adapter are the same in all
-                            # runs
-                            consensus_found &= found[a] == nb_run
-                        best_adp = max(found.keys(), key=lambda x: found[x])
-                        tmp[e] = best_adp
-
-                    adapters[m] = tmp
-
-            # If we are at the second run, we need to find a consensus
-            else:
-                consensus_found = True
-                # for each method and ends
-                for m in adpDict.keys():
-                    adapters[m] = {}
-                    tmp = {}
-                    for e in adpDict[m].keys():
-                        g = build_consensus_graph(adpDict[m][e])
-                        path = find_consensus(g, nb_run)
-                        tmp[e] = concat_path(path)
-                    adapters[m] = tmp
-
-            # Do we need to rerun ?
-            if(not consensus_found):
-                # If a 100% consensus is not found at first,
-                # we increase the number of run and add those results
-                # to current adapter collection (default: 20)
-                nb_run = args.consensus_run
-                out_file_name += "_sup"
-                print("/!\\\tMore runs are required to build consensus.",
-                      file=sys.stderr)
-                print(f"/!\\\tSetting number of run to {nb_run}.",
-                      file=sys.stderr)
-                print("/!\\\tCurrent adapter distribution:",
-                      file=sys.stderr)
-                print_adapter_dict(adpDict, sys.stderr)
+        # Do we need to rerun ?
+        if(not consensus_found):
+            # If a 100% consensus is not found at first,
+            # we increase the number of run and add those results
+            # to current adapter collection (default: 20)
+            nb_run = args.consensus_run
+            out_file_name += "_sup"
+            print("/!\\\tMore runs are required to build consensus.",
+                  file=sys.stderr)
+            print(f"/!\\\tSetting number of run to {nb_run}.",
+                  file=sys.stderr)
+            print("/!\\\tCurrent adapter distribution:",
+                  file=sys.stderr)
+            print_adapter_dict(adpDict, sys.stderr)
 
     if(consensus_found):
         if(v > 0):
@@ -846,7 +867,6 @@ def consensus_adapter(args, prefix, v, print_dest):
     # If we need to use them, we build porechop Adapter objects
     else:
         adp = make_adapter_object(adapters, v, print_dest)
-
     return adp
 
 
@@ -855,7 +875,7 @@ def consensus_adapter(args, prefix, v, print_dest):
 ##############################################################################
 
 
-def execFindAdapt(args):
+def launch_ab_initio(args):
     """ Launch adaptFinder to perform the approximate kmers count and try
     to rebuild the adapter using different methods.
         The count will be stored as a temporary file in a ./tmp folder.
@@ -881,13 +901,14 @@ def execFindAdapt(args):
         adp = consensus_adapter(args, filename_pref, v, print_dest)
     else:
         # Or regular adapterinference algorithm
-        adapters = build_adapter(args, filename_pref, v, print_dest)
+        out_file_name = filename_pref + "approx_kmer_count"
+        adapters = build_adapter(args, out_file_name, v, print_dest)
         adp = make_adapter_object(adapters, v, print_dest)
-
     return(adp)
 
 
 if __name__ == '__main__':
-    adapt = execFindAdapt(sys.argv[1])
+    args = get_arguments
+    adapt = launch_ab_initio(args)
     for ad in adapt:
         print(ad.__dict__)
