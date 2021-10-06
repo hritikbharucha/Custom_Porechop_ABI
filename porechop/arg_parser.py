@@ -1,5 +1,10 @@
 """
-Copyright 2017 Ryan Wick (rrwick@gmail.com)
+Last modified 2021-10-06
+Author: Quentin Bonenfant (quentin.bonenfant@gmail.com)
+This file is a modified argument parser from Porechop.
+
+
+Copyright 2017-2021 Ryan Wick (rrwick@gmail.com)
 https://github.com/rrwick/Porechop
 This module contains the argument parser for Porechop.
 This file is part of Porechop. Porechop is free software:
@@ -11,8 +16,7 @@ without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 Porechop. If not, see <http://www.gnu.org/licenses/>.
-Author: Ryan Wick
-Last modified by: Quentin Bonenfant
+Original Author: Ryan Wick
 """
 
 import argparse
@@ -28,7 +32,7 @@ def get_arguments():
     """
     default_threads = min(multiprocessing.cpu_count(), 16)
 
-    parser = argparse.ArgumentParser(description='Porechop_ABI: ab initio version of Porechop.'
+    parser = argparse.ArgumentParser(description='Porechop_ABI: ab initio version of Porechop. '
                                                  'A tool for finding adapters in Oxford '
                                                  'Nanopore reads, trimming them from the ends and '
                                                  'splitting reads with internal adapters',
@@ -37,32 +41,49 @@ def get_arguments():
 
     abi_group = parser.add_argument_group('Ab-Initio options')
     abi_group.add_argument('-abi', '--ab_initio', action='store_true',
-                           help='Try to find the adapter from the read set '
-                           'instead of using adapter.py')
+                           help='Try to infer the adapters from the read set '
+                           'instead of just using the static database.')
     abi_group.add_argument('-go', '--guess_adapter_only', action='store_true',
-                           help='Just display the inferred adapters, \
-                            then quit.')
-    abi_group.add_argument('-mr', '--multi_run', type=int, default=1,
-                           help='Number of time the approximate count must be \
-                                performed to generate a consensus. \
-                                Each count file is exported separately.')
-    abi_group.add_argument('-cr', '--consensus_run', type=int, default=20,
-                           help='If using multi-run option, set the number of \
-                           additional run performed if no stable consensus \
-                           is immediatly found.')
-    abi_group.add_argument('-ec', '--export_consensus', type=str,
-                           help='Path to export the adapters found in \
-                           consensus mode.')
-    abi_group.add_argument('-ws', '--window_size', type=int, default=3,
-                           help='Size of the smoothing window used in the \
-                           drop cut algorithm.\
-                           (default is 3, set to 1 to disable).')
+                           help='Just display the inferred adapters then quit.')
     abi_group.add_argument('-abc', '--ab_initio_config', type=str,
-                           help='Path to the your custom config file for \
-                           ab_initio phase (default file in Porechop folder)')
+                           help='Path to a custom config file for the '
+                           'ab_initio phase (default file in Porechop folder)')
+    abi_group.add_argument('-ws', '--window_size', type=int, default=3,
+                           help='Size of the smoothing window used in the '
+                           'drop cut algorithm. (default is 3, set to 1 to disable).')
+    abi_group.add_argument('-ndc', '--no_drop_cut', action='store_true',
+                           help='Disable the drop cut step entirely')
+    abi_group.add_argument('-cap', '--custom_adapters', type=str,
+                           help='Path to a custom adapter text file, '
+                                'if you want to manually submit some.')
 
-    abi_group.add_argument('--export_graph', type=str,
-                           help='Path to export the graph used for assembly (.graphml format), if you want to keep it')
+
+    consensus_group = parser.add_argument_group('Consensus mode options')
+    consensus_group.add_argument('-mr', '--multi_run', type=int, default=1,
+                           help='Number of time the approximate count must be '
+                                'performed to generate a consensus. '
+                                'Each count file is exported separately.')
+    consensus_group.add_argument('-cr', '--consensus_run', type=int, default=20,
+                           help='If using multi-run option, set the number of '
+                                'additional run performed if no stable consensus '
+                                'is immediatly found.')
+    consensus_group.add_argument('-ec', '--export_consensus', type=str,
+                           help='Path to export the intermediate adapters found in '
+                                'consensus mode.')
+    consensus_group.add_argument('-aax', '--all_above_x', type=int, default=0,
+                           help='Only select consensus sequences if they are made '
+                                'using at least x percent of the total adapters. '
+                                'Default is 0 (all consensus are kept).')
+    consensus_group.add_argument('-box', '--best_of_x', type=int, default=0,
+                           help='Only select the best x consensus sequences '
+                                'from all consensus found.')
+
+
+    graph_group = parser.add_argument_group('Graphs options')
+    graph_group.add_argument('--export_graph', type=str,
+                           help='Path to export the graphs used for assembly '
+                                '(.graphml format), if you want to keep them')
+
 
     main_group = parser.add_argument_group('Main options')
     main_group.add_argument('-i', '--input', required=True,
@@ -168,12 +189,13 @@ def get_arguments():
 
     args = parser.parse_args()
 
+    # Checking Scoring Scheme
     try:
         scoring_scheme = [int(x) for x in args.scoring_scheme.split(',')]
     except ValueError:
         sys.exit('Error: incorrectly formatted scoring scheme')
     if len(scoring_scheme) != 4:
-        sys.exit('Error: incorrectly formatted scoring scheme')
+        sys.exit('Error: incorrectly formatted scoring scheme, expected 4 values.')
     args.scoring_scheme_vals = scoring_scheme
 
     if args.barcode_dir is not None and args.output is not None:
@@ -193,6 +215,17 @@ def get_arguments():
 
     if args.threads < 1:
         sys.exit('Error: at least one thread required')
+
+    # Checking if number of ab_initio run is above 1
+    if(args.multi_run < 1):
+        print("Ab-Initio multi-runs can only be set at 1 or above.")
+        print("Setting to 1")
+        args.multi_run = 1
+    # Same for consensus runs
+    if(args.consensus_run < 1):
+        print("Ab-Initio supplementary (consensus) runs can not be below 1")
+        print("Setting to 1")
+        args.consensus_run = 1
 
     # Force setting ab_initio if we only want to find adapter.
     if(args.guess_adapter_only):

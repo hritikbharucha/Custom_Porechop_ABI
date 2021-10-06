@@ -25,47 +25,72 @@ RELEASEFLAGS = -O3 -D NDEBUG
 
 TARGET       = porechop/cpp_functions.so
 SHELL        = /bin/sh
-SOURCES      = $(shell find porechop -name "*.cpp")
-HEADERS      = $(shell find porechop -name "*.h")
+# modified SOURCES / HEADER to only search cpp/h file in src folder
+SOURCES      = $(shell find porechop/src -name "*.cpp")
+HEADERS      = $(shell find porechop/src -name "*.h")
 OBJECTS      = $(SOURCES:.cpp=.o)
 
-ADAPTFINDER = adaptFinder/adaptFinder.cpp
+
+# Adapt finder (k-mer approximate counter)
+ADAPTFINDER_SRC = adaptFinder/adaptFinder.cpp
+ADAPTFINDER_TGT = porechop/adaptFinder
+
+# Compatibility flag library
+COMPAT_TGT = porechop/compatibility.so
+COMPAT_SRC = porechop/ab_initio_src/compatibility.cpp
+COMPAT_HDR = porechop/ab_initio_src/compatibility.h
+COMPAT_OBJ = $(COMPAT_SRC:.cpp=.o)
+
+# Adding Compatibility library header to headers list
+HEADERS+=$(COMPAT_HDR)
+
+
+# MSA consensus
+MSA_TGT = porechop/msa_consensus
+MSA_SRC = porechop/ab_initio_src/msa_consensus.cpp
+
 # Linux needs '-soname' while Mac needs '-install_name'
 PLATFORM     = $(shell uname)
 ifeq ($(PLATFORM), Darwin)
-SONAME       = -install_name
-OMP 		 = 
-LRT 		 = 
+SONAME	= -install_name
+OMP 	= 
+LRT 	= 
 
 else
-SONAME       = -soname
-OMP 		 = -fopenmp
-LRT 		 = -lrt
+SONAME	= -soname
+OMP 	= -fopenmp
+LRT 	= -lrt
 endif
 
 
-all: $(TARGET) adaptFind
+all: $(TARGET) $(COMPAT_TGT) $(MSA_TGT) $(ADAPTFINDER_TGT)
 
 .PHONY: release
 release: FLAGS+=$(RELEASEFLAGS)
-release: $(TARGET)
+release: all
 
 .PHONY: debug
 debug: FLAGS+=$(DEBUGFLAGS)
-debug: $(TARGET)
+debug: all
 
 
 $(TARGET): $(OBJECTS)
 	$(CXX) $(FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,$(SONAME),$(TARGET) -o $(TARGET) $(OBJECTS)
 
-adaptFind: 
-	$(CXX) $(FLAGS) $(OMP) -O3 -DNDEBUG -march=native  -mtune=native  $(ADAPTFINDER) $(LRT) -o porechop/adaptFinder
+$(ADAPTFINDER_TGT):
+	$(CXX) $(FLAGS) $(OMP) $(CXXFLAGS)  $(ADAPTFINDER_SRC) $(LRT) -o $(ADAPTFINDER_TGT)
 
+$(COMPAT_TGT): $(COMPAT_OBJ)
+	$(CXX) $(FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,$(SONAME),$(COMPAT_TGT) -o $(COMPAT_TGT) $(COMPAT_OBJ)
+
+$(MSA_TGT):
+	$(CXX) $(FLAGS) $(OMP) $(CXXFLAGS) $(MSA_SRC) $(LRT) -o $(MSA_TGT)
+	
 clean:
-	$(RM) $(OBJECTS) porechop/adaptFinder
+	$(RM) $(OBJECTS) $(COMPAT_OBJ)
 
 distclean: clean
-	$(RM) $(TARGET) 
+	$(RM) $(TARGET) $(ADAPTFINDER_TGT) $(COMPAT_TGT) $(MSA_TGT)
 
 %.o: %.cpp $(HEADERS)
 	$(CXX) $(FLAGS) $(CXXFLAGS) -c -o $@ $<

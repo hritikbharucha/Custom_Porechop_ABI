@@ -1,4 +1,7 @@
-import networkx as nx
+import sys
+import os
+from collections import defaultdict as dd
+import subprocess
 ##############################################################################
 #                            CONSENSUS FUNCTIONS                             #
 ##############################################################################
@@ -7,46 +10,231 @@ KM_SIZE = 16
 THRESHOLD = 0.75
 
 
-def find_consensus(g, nb_run, threshold=0.75):
-    path = []
-    best_node = max(g.nodes, key=lambda x: g.nodes[x]['weight'])
-    path.append(best_node)
-    g.nodes[best_node]['path'] = 'consensus'
-    left = best_node
-    right = best_node
-    search = True
-    while(search):
-        if(left):
-            l_list = list(g.predecessors(left))
-            left = l_list[0] if l_list else None
-        if(right):
-            r_list = list(g.successors(right))
-            right = r_list[0] if r_list else None
-        if(left and g.nodes[left]['weight'] / nb_run >= threshold):
-            path = [left] + path
-            g.nodes[left]['path'] = 'consensus'
-        # Adding
-        if(right and g.nodes[right]['weight'] / nb_run >= threshold):
-            path.append(right)
-            g.nodes[right]['path'] = 'consensus'
-        # If no k-mer are added to the path, stop.
-        if(not (path[0] == left or path[-1] == right)):
-            search = False
-    return(path)
+def run_subprocess(program, arguments):
+    prog_path = os.path.join(os.path.dirname(
+        os.path.realpath(__file__)), program)
+    command_line = [prog_path] + arguments
+    result = subprocess.run(command_line,
+                            capture_output=True,
+                            encoding="utf-8")
+    return(result.stdout)
 
 
-def build_consensus_graph(adp_dict):
-    # print("Working on ",method, which_end, file=sys.stderr)
-    g = nx.DiGraph()
-    for adp, w in adp_dict.items():
-        prev = ""
-        for i in range(len(adp) - KM_SIZE + 1):
-            km = adp[i:i + KM_SIZE]
-            if(km not in g.nodes):
-                g.add_node(km, weight=w)
-            else:
-                g.nodes[km]["weight"] += w
-            if(prev != ""):
-                g.add_edge(prev, km)
-            prev = km
-    return(g)
+def get_compatibles(mat):
+    """ Find compatible subsets of sequences id from the similarity matrix
+    @param mat: A similarity matrix (list)
+    @return compat: A list of compatible sequences ids.
+    """
+    clustered = []
+    compat = []
+    nb_line = len(mat)
+    i = 0
+    while(len(clustered) < nb_line):
+        if(i not in clustered):
+            current = [i]
+            clustered.append(i)
+            for j in range(nb_line):
+                if(i != j and j not in clustered):
+                    if(abs(mat[i][j]) != 0):
+                        # check if potental , new node is compatible.
+                        if(est_clique(mat, current + [j])):                
+                            clustered.append(j)
+                            current.append(j)
+            compat.append(current)
+            
+        i += 1
+    return(compat)
+
+
+"""Build the distance matrix using the 'compatibility' algorithm."""
+def all_vs_all_matrix(sequences):
+    from ctypes import CDLL, c_char_p, c_int
+    # Gettign path and handle to the library
+    prog = "compatibility.so"
+    prog_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), prog)
+    compatiblity = CDLL(prog_path)
+    
+    # compatibility function definition
+    compatiblity.check_compatibility.argtypes = [c_char_p,
+                                                 c_char_p]
+    compatiblity.check_compatibility.restype = c_int       # Compatibility flag
+    size = len(sequences)
+    # matrix init
+    mat = [[-1]* size for _ in range(size)]
+    # computing half the matrix (but filling both sides)
+    for i, seq1 in enumerate(sequences):
+        l1 = len(seq1)
+        tmp = []
+        for j in range(i+1, size):
+            if(i != j):
+                seq2 = sequences[j]
+                l2 = len(seq2)
+                s1 = seq1.encode('utf-8')
+                s2 = seq2.encode('utf-8')
+                flag  = compatiblity.check_compatibility(s1, s2)
+                mat[i][j] = flag
+                mat[j][i] = flag
+    return(mat)
+
+
+def pool_methods(adapters, name):
+    """
+    Combine the adapters from different inferring methods into
+    one global method.
+    @param adapters An adapter dictionnary to concatenate.
+    @param name The name of the new method
+    """
+    
+    # New pooled adapter count (nested default dicts)
+    pooled =  dd(lambda: dd(lambda: dd(int)))
+    for end in adapters.keys():
+        for meth in adapters[end].keys():
+            for adp, count in adapters[end][meth].items():
+                pooled[end][name][adp] += count
+    return(pooled)
+
+
+def merge_adapter_set(adp1, adp2):
+    """ Add the result of adp2 into adp1
+    """
+    for end in adp2.keys():
+        for meth in adp2[end].keys():
+            adp1[end][meth] = adp2[end][meth]
+
+
+def seqan_msa_consensus(sequences, end, adp_count):
+    with open("tmp.fasta", "w") as out:
+        printed_seq = 0
+        methods = adp_count[end].keys()
+        for seq in sequences:
+            # get the number of time it should be repeated
+            nb_time = 0
+            for meth in methods:
+                if(seq in adp_count[end][meth].keys()):
+                    nb_time += adp_count[end][meth][seq]
+            # exporting nb_times te sequence in fasta format
+            for _ in range(nb_time):
+                out.write(f">Sequence_{printed_seq}\n{seq}\n")
+                printed_seq += 1
+    # Searching path to consensus maker
+    result = run_subprocess("msa_consensus" , ["tmp.fasta"])
+    os.remove("tmp.fasta")
+    return(result)
+
+
+def export_as_fasta(seq, filename):
+    with open(filename, "w") as out:
+        for i, s in enumerate(seq):
+            out.write(f">Sequence_{i}\n{s}\n")
+
+
+def print_mat(mat):
+    for line in mat:
+        print("".join([f"{el:>5}" for el in line]))
+
+
+def est_clique(mat, node_set):
+    missing = 0
+    lns = len(node_set)
+    origin = node_set[0] # original node
+    for i in range(lns):
+        n1 = node_set[i]
+        # # DEBUG
+        # print(f"Testing node {n1}")
+        for j in range(i+1, lns):
+            n2 = node_set[j]
+            # id there is a miss and n2 is not included in the main node
+            if(mat[n1][n2] == 0 and mat[origin][n2]!=2 ):
+                missing +=1
+                # # DEBUG
+                #print(f"Unlinked node: {n2}")
+        if(missing >= 2):
+            return(False)
+    return(True)
+
+
+def group_sequences(group, sequences):
+    """Return the list of original sequences from a cluster list
+    @param group: the list of sequences id that are in the same group (int)
+    @param sequences: the list of all sequences for the current end. (list)
+    @return The list of sequences corresponding to the group ids'. (list)
+    """
+    return(list(sequences[i] for i in group))
+
+
+def group_weight(group, sequences, end, adp_count):
+    """Compute the total weight of a sequence cluster
+    using the total number of occurences in the original
+    adapter count dictionnary.
+    @param group: the list of sequences id that are in the same group (int)
+    @param sequences: the list of all sequences for the current end. (list)
+    @param end : The end we are working on (string)
+    @param adp_count: A nested dictionnary containint adapter counts (dict)
+    @return weight : The total weight of the cluster (int)
+    """
+    weight = 0
+    for g in group:
+        seq = sequences[end][g]
+        for meth in adp_count[end].keys():
+            if(seq in adp_count[end][meth].keys()):
+                weight += adp_count[end][meth][seq]
+    return(weight)
+
+
+def adpcount_2_sequences(adp_count):
+    """  Convert an adapter dictionnary to a sequences list,
+    separated by ends. (methods are pooled)
+    @param adp_count: A nested dictionnary containint adapter counts (dict)
+    @return sequences: dictionnary of distincts sequences for both ends (dict)
+    """
+    pooled = pool_methods(adp_count, "pooled")
+    sequences = dd(list)
+    for end in pooled.keys():
+        adp = pooled[end]["pooled"]
+        # keeping the list sorted
+        ordered_adp = sorted(list(adp.keys()),
+                             key=lambda x: adp[x],
+                             reverse=True)
+        sequences[end] = ordered_adp
+    return(sequences)
+
+
+def sort_groups(groups, sequences, end, adp_count):
+    """ Sort the groups by total weight, descending.
+    @param group: the list of sequences id that are in the same group (int)
+    @param sequences: the list of all sequences for the current end. (list)
+    @param end : The end we are working on (string)
+    @param adp_count: A nested dictionnary containint adapter counts (dict)
+    @return sorted_g : The list of groups sorted by descending weithgt (list)
+    """
+    sorted_g = sorted(groups,
+                      key=lambda x: group_weight(x, sequences, end, adp_count),
+                      reverse = True)
+    return(sorted_g)
+
+
+def build_consensus_adapter_dict(args, adp_count, total_seq):
+    """ Main function of this script. It clusterise and compute consensus
+    for all sequences on both ends.
+    @param adp_count: A nested dictionnary containing adapter counts (dict)
+    @return consensus_count: a nested dictionnary with consensus for both ends
+    """
+    consensus_count = dd(lambda: dd(lambda: dd(int)))
+    sequences = adpcount_2_sequences(adp_count)
+    for end in adp_count.keys():
+        mat = all_vs_all_matrix(sequences[end])
+        compatibles = get_compatibles(mat)
+        # Sorting to get be able to display only the best consensus if needed.
+        sorted_compat = sort_groups(compatibles, sequences, end, adp_count)
+        # Computing best consensus.
+        for i, group in enumerate(sorted_compat):
+            # fetching sequences and counts for this group
+            group_seq = group_sequences(group, sequences[end])
+            weight = group_weight(group, sequences, end, adp_count)
+            consensus = seqan_msa_consensus(group_seq, end, adp_count)
+            # storing consensus in similar structure as adp_count,
+            # for back-compatibility.
+            frequency = round((100*weight) / total_seq, 1)
+            # Relative frequency stored directly into the name
+            consensus_count[end][f"Consensus_{i+1}_({frequency}%)"] = consensus
+    return(consensus_count)

@@ -1,5 +1,5 @@
 """
-Copyright 2017 Ryan Wick (rrwick@gmail.com)
+Copyright 2017-2021 Ryan Wick (rrwick@gmail.com)
 https://github.com/rrwick/Porechop
 This module contains the main script for Porechop.
 It is executed when a user runs `porechop` after installation or
@@ -14,7 +14,7 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 Porechop. If not, see <http://www.gnu.org/licenses/>.
 Author: Ryan Wick
-Last modified by: Quentin Bonenfant
+Last modified 2021-10-06
 """
 
 import os
@@ -31,11 +31,12 @@ from .adapters import ADAPTERS, make_full_native_barcode_adapter,\
 from .nanopore_read import NanoporeRead
 from .abinitio import launch_ab_initio
 from .arg_parser import get_arguments
+from .parse_adapter_file import *
 
 
 def main():
     args = get_arguments()
-    # avoid unnessary read load by Porechop if we just want to guess adapters.
+    # avoid unnecessary read load by Porechop if we just want to guess adapters.
     if(not args.guess_adapter_only):
         reads, check_reads, read_type = load_reads(args.input,
                                                    args.verbosity,
@@ -54,8 +55,13 @@ def main():
         # If we just want to display inferred adapter, exit here.
         if(args.guess_adapter_only):
             exit()
-    # Letting Porechop do it's job.
 
+    # Do we need to add more from a custom adapter file ?
+    if(args.custom_adapters):
+        ADAPTERS += parse_adapter_file.get_adapters(args.custom_adapters)
+
+
+    # Letting Porechop do it's job.
     matching_sets = find_matching_adapter_sets(check_reads,
                                                args.verbosity,
                                                args.end_size,

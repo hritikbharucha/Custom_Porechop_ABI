@@ -41,11 +41,14 @@ class PorechopBuild(build):
     def run(self):
         build.run(self)  # Run original build code
 
-        clean_cmd = ['make', 'clean']
+        clean_cmd = ['make', 'distclean']
         try:
             make_cmd = ['make', '-j', str(min(8, multiprocessing.cpu_count()))]
         except NotImplementedError:
             make_cmd = ['make']
+
+        # building in release mode for installation.
+        make_cmd += ["release"]
 
         def clean_cpp():
             subprocess.call(clean_cmd)
@@ -66,9 +69,18 @@ class PorechopInstall(install):
         install.run(self)  # Run original install code
         shutil.copyfile(os.path.join('porechop', 'cpp_functions.so'),
                         os.path.join(self.install_lib, 'porechop', 'cpp_functions.so'))
-        # added my custom cpp file
+        # adding adaptFinder  file
         shutil.copyfile(os.path.join('porechop', 'adaptFinder'),
                         os.path.join(self.install_lib, 'porechop', 'adaptFinder'))
+
+        # adding  compatibility shared library
+        shutil.copyfile(os.path.join('porechop', 'compatibility.so'),
+                        os.path.join(self.install_lib, 'porechop', 'compatibility.so'))
+        
+        # adding  msa consensus exec
+        shutil.copyfile(os.path.join('porechop', 'msa_consensus'),
+                        os.path.join(self.install_lib, 'porechop', 'msa_consensus'))
+        
         # moving config file
         shutil.copyfile(os.path.join('porechop', 'ab_initio.config'),
                         os.path.join(self.install_lib, 'porechop', 'ab_initio.config'))
