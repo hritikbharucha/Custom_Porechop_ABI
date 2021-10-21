@@ -1,6 +1,6 @@
 # This makefile will build the C++ components of Porechop.
 # EDIT: qbonenfant
-# Modified the makefile so it also build adaptFinder tool
+# Modified the makefile so it also build approx_counter tool
 
 # Example commands:
 #   make (build in release mode)
@@ -32,8 +32,8 @@ OBJECTS      = $(SOURCES:.cpp=.o)
 
 
 # Adapt finder (k-mer approximate counter)
-ADAPTFINDER_SRC = adaptFinder/adaptFinder.cpp
-ADAPTFINDER_TGT = porechop/adaptFinder
+APPROXCOUNTER_SRC = approx_counter/approx_counter.cpp
+APPROXCOUNTER_TGT = porechop/approx_counter
 
 # Compatibility flag library
 COMPAT_TGT = porechop/compatibility.so
@@ -63,7 +63,7 @@ LRT 	= -lrt
 endif
 
 
-all: $(TARGET) $(COMPAT_TGT) $(MSA_TGT) $(ADAPTFINDER_TGT)
+all: $(TARGET) $(COMPAT_TGT) $(MSA_TGT) $(APPROXCOUNTER_TGT)
 
 .PHONY: release
 release: FLAGS+=$(RELEASEFLAGS)
@@ -77,8 +77,8 @@ debug: all
 $(TARGET): $(OBJECTS)
 	$(CXX) $(FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,$(SONAME),$(TARGET) -o $(TARGET) $(OBJECTS)
 
-$(ADAPTFINDER_TGT):
-	$(CXX) $(FLAGS) $(OMP) $(CXXFLAGS)  $(ADAPTFINDER_SRC) $(LRT) -o $(ADAPTFINDER_TGT)
+$(APPROXCOUNTER_TGT):
+	$(CXX) $(FLAGS) $(OMP) $(CXXFLAGS)  $(APPROXCOUNTER_SRC) $(LRT) -o $(APPROXCOUNTER_TGT)
 
 $(COMPAT_TGT): $(COMPAT_OBJ)
 	$(CXX) $(FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,$(SONAME),$(COMPAT_TGT) -o $(COMPAT_TGT) $(COMPAT_OBJ)
@@ -90,7 +90,7 @@ clean:
 	$(RM) $(OBJECTS) $(COMPAT_OBJ)
 
 distclean: clean
-	$(RM) $(TARGET) $(ADAPTFINDER_TGT) $(COMPAT_TGT) $(MSA_TGT)
+	$(RM) $(TARGET) $(APPROXCOUNTER_TGT) $(COMPAT_TGT) $(MSA_TGT)
 
 %.o: %.cpp $(HEADERS)
 	$(CXX) $(FLAGS) $(CXXFLAGS) -c -o $@ $<

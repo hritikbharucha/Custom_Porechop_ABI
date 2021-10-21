@@ -4,11 +4,11 @@ Ab-Initio inference of ONT adapter main file
 https://github.com/qbonenfant
 https://github.com/bonsai-team
 
-This script evolved from the wrapper used to call the adaptFinder 
+This script evolved from the wrapper used to call the approx_counter 
 algorithm, which end goal is to find adapter sequence k-mers.
 We are able to infer adapter sequence from the reads instead of using
 the adapter.py static database (unsupported since 2018) of native Porechop.
-In order to change default parameters for adaptFinder, change the config
+In order to change default parameters for approx_counter, change the config
 file porchop/abinitio.conf or pass a custom config file based on the same
 syntax using -abc / --ab_initio_config
 
@@ -42,6 +42,7 @@ from .consensus import *
 
 METHODS = ["greedy", "heavy"]  # Reconstruction methods.
 ENDS = ["start", "end"]        # Possible ends key.
+LOW_FREQ_THRESHOLD = 10        # K-mer low frequency treshold.
 
 
 ##############################################################################
@@ -49,7 +50,24 @@ ENDS = ["start", "end"]        # Possible ends key.
 ##############################################################################
 
 
-def print_consensus_result(consensus_adapters, v, print_dest=sys.stdout):
+def warning(msg):
+    """
+    Print a message to stderr in a formatted way
+    @param msg: the message to print as warning (str)
+    """
+    print(f"/!\\\t {msg}", file=sys.stderr)
+
+
+def low_freq_warning(end, amount):
+    
+    warning(f"The most frequent kmer has been found in less"+
+            f" than {LOW_FREQ_THRESHOLD}% of the reads {end}s"+
+            f" after approximate count ({amount}%)")
+    warning("It could mean this file is already trimmed or the sample do not"+
+             " contains detectable adapters.")
+
+
+def print_consensus_result(consensus_adapters, v, print_dest=sys.stderr):
     """Display the result from consensus runs. The format is different 
     beacause methods are pooled in consensus runs, so a method oriented 
     display no longer makes sens.
@@ -74,7 +92,7 @@ def print_consensus_result(consensus_adapters, v, print_dest=sys.stdout):
             print(adp, file=out)
 
 
-def print_result(adapters, v, print_dest=sys.stdout):
+def print_result(adapters, v, print_dest=sys.stderr):
     """Display the result in the legacy format (method->ends)
     using the updated data structure (end -> methods)
     @param an adapter dictionnary, using appropriate methods as keys
@@ -129,6 +147,48 @@ def print_adapter_dict(adapters, print_dest=sys.stderr):
         print(msg, file=out)
         print(srt, file=out)
         print(end, file=out)
+
+def parse_conf(conf_file):
+    """
+    Parse the configuration file passed to approxCounter.
+    It allows Porechop_ABI to know which parameters are 
+    used during the approximate k-mer count.
+    @param The path to the configuration file (str)
+    @return A dictionnary containing the parameters.
+    """
+
+    # Setting some default values:
+    params = {'k' : 16,      # kmer size, 2<= k <= 32
+              'sl' : 100,     # sequence sampling size
+              'sn' : 40000,   # number of sequence sampled
+              'limit' : 500,  # number of kmers to keep.
+              'lc' :    1.2   # low complexity filter threshold.
+    }
+    try:
+        assert(os.path.isfile(conf_file))
+    except AssertionError:
+        warning("Invalide configuration file.")
+        warning(conf_file)
+        sys.exit(1)
+    else:
+        with open(conf_file) as f:
+            for line in f:
+                line = line.rstrip("\n").replace(" ","")
+                data = line.split("=")
+                if(line and line[0]!="#" and len(data) == 2):
+                    p, v = data
+                    # int values
+                    if(v.isdigit()):
+                        params[p] = int(v)
+                    # float values
+                    elif(v.replace(".","",1).isdigit()):
+                        params[p] = float(v)
+                    # string values
+                    else:
+                        params[p] = v
+    return(params)
+
+
 
 
 ##############################################################################
@@ -290,16 +350,15 @@ def build_graph(count_file):
 
     # If the file can not be opened.
     except FileNotFoundError:
-        print("\n/!\\ Unable to open k-mer count file:", file=sys.stderr)
-        print(count_file, file=sys.stderr)
-        print("Either the file was moved, deleted, or filename is invalid.",
-              file=sys.stderr)
+        warning("Unable to open k-mer count file:")
+        warning(count_file)
+        warning("Either the file was moved, deleted, or filename is invalid.")
+    
     # in case we try to convert to int something that is not a number
     except TypeError:
-        print("\n/!\\ Something is wrong with the k-mer count file format:", file=sys.stderr)
-        print(count_file, file=sys.stderr)
-        print("Each line need to be in this format: <k-mer> \\t <count>",
-              file=sys.stderr)
+        warning("Something is wrong with the k-mer count file format:")
+        warning(count_file)
+        warning("Each line need to be in this format: <k-mer> \\t <count>")
 
     else:
         # searching overlaps
@@ -326,7 +385,7 @@ def build_graph(count_file):
 ##############################################################################
 
 
-def execFindAdapt(args, out_file_name, mr, v, print_dest=sys.stdout):
+def execApproxCounter(args, out_file_name, conf_file, mr, v, print_dest=sys.stderr):
     """ Prepare command and execute the approximate k-mer counting 
     program using subprocess.
     @param args: The arguments passed to Porechop (argparse arguments)
@@ -339,14 +398,9 @@ def execFindAdapt(args, out_file_name, mr, v, print_dest=sys.stdout):
     or stops the whole program.
     """
 
-    # Searching path to adaptFinder
-    adapt_path = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), "adaptFinder")
-
-    # Using custom config file if specified
-    conf_path = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), "ab_initio.config")
-    conf_path = args.ab_initio_config if args.ab_initio_config else conf_path
+    # Searching path to approx_counter
+    prog_path = os.path.join(os.path.dirname(
+        os.path.realpath(__file__)), "approx_counter")
 
     # Input filename
     fasta_file = args.input
@@ -354,10 +408,10 @@ def execFindAdapt(args, out_file_name, mr, v, print_dest=sys.stdout):
     # TODO: Manage number of threads in a better way.
     nb_thread = str(min(args.threads, cpu_count()))
 
-    # Building command line for adaptFinder
-    command = adapt_path + " " + fasta_file + \
+    # Building command line for approx_counter
+    command = prog_path + " " + fasta_file + \
         f" -v {v}" + \
-        f" --config {conf_path}" + \
+        f" --config {conf_file}" + \
         f" -o {out_file_name}" + \
         f" -nt {nb_thread}"
 
@@ -366,7 +420,7 @@ def execFindAdapt(args, out_file_name, mr, v, print_dest=sys.stdout):
         command += f" -mr {mr}"
 
     if(v > 0):
-        print("Using config file:" + conf_path, file=print_dest)
+        print("Using config file:" + conf_file, file=print_dest)
         print("Command line:\n", command,
               file=print_dest)
 
@@ -406,13 +460,10 @@ def generic_build(method_fct, name, g, adapters, which_end, v, w, print_dest):
            nx.exception.NetworkXNotImplemented,
            nx.exception.HasACycle) as nxE:
 
-        print(f"\t/!\\Could not compute {which_end} adaper with {name} method",
-              file=sys.stderr)
-        print("\t/!\\ The resulting graph probably contains a loop.",
-              file=sys.stderr)
-        print("\t/!\\ For more details, read the error report below;\n",
-              file=sys.stderr)
-        print(nxE, file=sys.stderr)
+        warning(f"Could not compute {which_end} adaper with {name} method")
+        warning("The resulting graph probably contains a loop.")
+        warning("For more details, read the error report below;\n")
+        warning(nxE)
         adapters[which_end][name] = ""
 
     else:
@@ -425,9 +476,9 @@ def generic_build(method_fct, name, g, adapters, which_end, v, w, print_dest):
         if(cut_method_p):
             adapters[which_end][name] = concat_path(cut_method_p)
         else:
-            print(f"\t/!\\Something went wrong for {which_end} \
-                  adaper with {name} method", file=sys.stderr)
-            print(f"\t/!\\Resulting path is empty", file=sys.stderr)
+            warning(f"Something went wrong for {which_end} \
+                  adaper with {name} method")
+            warning("The returned graph path is empty")
             adapters[which_end][name] = ""
 
 
@@ -453,7 +504,7 @@ def make_adapter_objects(adapters, v, print_dest):
     return(adp)
 
 
-def build_adapter(args, out_file_name, v, print_dest):
+def build_adapter(args, out_file_name, sn, v, print_dest):
     """Building adapters from counts using different method:
         - Building a Debruijn graph and searching heaviest path
         - Greedy assembly based on kmer rank (most frequent first)
@@ -464,11 +515,14 @@ def build_adapter(args, out_file_name, v, print_dest):
     @return A list of Adapter objects containing infered adapters.
     """
 
+    # window size for the count smoothing at the drop cut stage.
     w = args.window_size
-    adapters = dd(dict)  # temporary adapter string dict
 
-    # Launchiong adaptFinder in simple mode
-    execFindAdapt(args, out_file_name, 1, v, print_dest)
+    # Keeping track of the best k-mer frequency
+    best_freq = []
+
+    # Placeholder adapter string dict
+    adapters = dd(dict)  
 
     # Failsafe if the graphs for the adapter can not be built
     unable_to_build = False
@@ -483,6 +537,11 @@ def build_adapter(args, out_file_name, v, print_dest):
         # Checking graph is properly build
         if(not nx.is_empty(g)):
 
+            # Computing best k-mer frequency to decide
+            # if a warning is needed or not
+            max_count = max(g.nodes[n]["weight"] for n in g.nodes)
+            best_freq.append(max_count * 100 / sn)
+            
             # preping for automatic anotation
             nx.set_node_attributes(g, "", "path")
 
@@ -517,15 +576,16 @@ def build_adapter(args, out_file_name, v, print_dest):
                 nx.write_graphml(g, path)
         else:
             unable_to_build = True
+            break
 
     if(unable_to_build):
         print("#################################", file=sys.stderr)
-        print("WARNING - Unable to build graph  ", file=sys.stderr)
+        print("ERROR  -  Unable to build graph  ", file=sys.stderr)
         print("Count file format may be invalid ", file=sys.stderr)
-        print("   No adapter will be returned   ", file=sys.stderr)
         print("#################################", file=sys.stderr)
+        sys.exit(1)
 
-    return adapters
+    return (adapters, best_freq)
 
 ##############################################################################
 #                            Multi Run / Consensus                           #
@@ -583,7 +643,7 @@ def make_consensus_adapter_objects(adapters, v, print_dest):
     return(adp)
 
 
-def consensus_adapter(args, prefix, v, print_dest):
+def consensus_adapter(args, prefix, conf_file, v, print_dest):
     """ Try to find the fittest adapter for the dataset by running multiple
     adapter reconstruction and building a consensus.
     We first try 10 runs, and keep the adapter if a perfectly stable consensus
@@ -605,6 +665,12 @@ def consensus_adapter(args, prefix, v, print_dest):
     # Defining output filename basename
     out_file_name = prefix + "approx_kmer_count"
 
+    # getting params sent to approxCounter
+    params = parse_conf(conf_file)
+
+    # Using the sample size to determine if the k-mer frequency is small.
+    sn = params["sn"]
+
     #################################################################
     # CONSENSUS BUILDING
     #
@@ -618,6 +684,8 @@ def consensus_adapter(args, prefix, v, print_dest):
     # Unless an error occured.
     build_error = False
 
+    # looking for the best k-mer frequency for each runs
+    run_best_km_freq = []
     while not consensus_found and not build_error:
         if(v > 0):
             if(not first_batch_done):
@@ -625,17 +693,20 @@ def consensus_adapter(args, prefix, v, print_dest):
             else:
                 print(f"Following with a {nb_run} run batch.", file=print_dest)    
 
-        # Launching adaptFinder in multi run mode
-        execFindAdapt(args, out_file_name, nb_run, v, print_dest)
+        # Launching approx_counter in multi run mode
+        execApproxCounter(args, out_file_name, conf_file, nb_run, v, print_dest)
 
+        # Parsing individual files
         for i in range(nb_run):
-            current_adapter = build_adapter(args,
-                                            out_file_name + f"_{i}",
-                                            v,
-                                            print_dest)
-
+            current_adp, best_freq = build_adapter(args,
+                                                   out_file_name + f"_{i}",
+                                                   sn,
+                                                   v,
+                                                   print_dest)
             # storing and counting adapters
-            insert_adapter_in_adp_count(current_adapter, adp_count)
+            insert_adapter_in_adp_count(current_adp, adp_count)
+            # storing best k-mer frequency
+            run_best_km_freq.append(best_freq)
 
         # pooling methods for consensus mode.
         pooled_name = "pooled"
@@ -658,6 +729,10 @@ def consensus_adapter(args, prefix, v, print_dest):
             consensus_found = True
             # building the consensus dictionnary from the pooled adapter dict.
             adapters = build_consensus_adapter_dict(args, pooled, total_run * 2)
+            # checking adapter list is empty
+            if(len(adapters) == 0):
+                warning()
+
 
         # Do we need to rerun ?
         if(not consensus_found):
@@ -667,14 +742,12 @@ def consensus_adapter(args, prefix, v, print_dest):
             nb_run = args.consensus_run
             total_run += nb_run
             out_file_name += "_sup"
-            print("/!\\\tMore runs are required to build consensus.",
-                  file=sys.stderr)
-            print(f"/!\\\tSetting number of run to {nb_run}.",
-                  file=sys.stderr)
-            print("/!\\\tCurrent adapter distribution:",
-                  file=sys.stderr)
-            print_adapter_dict(adp_count, sys.stderr)
+            warning("More runs are required to build consensus.")
+            warning(f"Setting number of run to {nb_run}.")
+            # warning("Current adapter distribution:")
+            # print_adapter_dict(adp_count, print_dest)
 
+        # In case we want to export temp adapters used for the consenus
         if(args.export_consensus):
             try:
                 out = open(args.export_consensus, "at")
@@ -691,9 +764,20 @@ def consensus_adapter(args, prefix, v, print_dest):
     #################################################################
     # RESULT EXPORT
     #
+    # Are their any frequency warnings ?
+    for i in range(len(ENDS)):
+        lowest = 100
+        nb_below = 0
+        for freq in run_best_km_freq:
+            lowest = min(lowest, freq[i])
+            nb_below += 1 if freq[i] < LOW_FREQ_THRESHOLD else 0
+        if(nb_below):
+            low_freq_warning(ENDS[i], lowest)
+            warning(f"Warning triggered by {nb_below}/{total_run} runs")
+
     # If we just need to print the adapter
     if(just_print):
-        print_consensus_result(adapters, v, sys.stdout)
+        print_consensus_result(adapters, v, print_dest)
 
     # If we need to use them, we build porechop Adapter objects
     else:
@@ -707,7 +791,7 @@ def consensus_adapter(args, prefix, v, print_dest):
 
 
 def launch_ab_initio(args):
-    """ Launch adaptFinder to perform the approximate kmers count and try
+    """ Launch approx_counter to perform the approximate kmers count and try
     to rebuild the adapter using different methods.
         The count will be stored as a temporary file in a ./tmp folder.
         @param path to fasta file.
@@ -728,21 +812,42 @@ def launch_ab_initio(args):
     if(not os.path.exists(tmpDir)):
         os.mkdir(tmpDir)
 
+    # Using custom config file if specified
+    conf_file = os.path.join(os.path.dirname(
+        os.path.realpath(__file__)), "ab_initio.config")
+    conf_file = args.ab_initio_config if args.ab_initio_config else conf_file
+
     # If multiple run are required:
     if(args.multi_run > 1):
         # executing consensus adapter inference algorithm
-        adp = consensus_adapter(args, filename_pref, v, print_dest)
+        adp = consensus_adapter(args, filename_pref, conf_file, v, print_dest)
     else:
         # Or regular adapter inference algorithm
         out_file_name = filename_pref + "approx_kmer_count"
-        adapters = build_adapter(args, out_file_name, v, print_dest)
-        # if we need to just print the adapter, do it
+
+        # Launching approx_counter in simple mode
+        execApproxCounter(args, out_file_name, conf_file, 1, v, print_dest)
+
+        # getting params sent to approxCounter
+        params = parse_conf(conf_file)
+
+        # Using the sample size to determine if the k-mer frequency is small.
+        sn = params["sn"]
+
+        # Finally building  the adapter
+        adapters , best_freq = build_adapter(args, out_file_name, sn, v, print_dest)
+        
+        # Low frequency warnings
+        for i in range(len(ENDS)):
+            if(best_freq[i]< LOW_FREQ_THRESHOLD):
+                low_freq_warning(ENDS[i], best_freq[i])
+
+        # If we need to just print the adapter, do it
         if(args.guess_adapter_only):
             print_result(adapters, v, print_dest)
         # else export adapter as Adapter object
         else:
             adp = make_adapter_objects(adapters, v, print_dest)
-
     return(adp)
 
 

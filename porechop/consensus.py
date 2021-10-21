@@ -1,14 +1,36 @@
+"""
+Consensus building tools for Porechop_ABI
+
+https://github.com/qbonenfant
+https://github.com/bonsai-team
+
+When using the multi run mode, several potential adapters are generated.
+This file contains the required tools to build and manage the generated
+sequences, clusterise them and output a consensus for each cluster of
+compatible sequences.
+
+This works has been funded by the french National Ressearch Agency (ANR).
+
+This file is part of Porechop_ABI. Porechop_ABI is free software:
+you can redistribute it and/or modify it under the terms of the GNU
+General Public License as published by the Free Software Foundation, either
+version 3 of the License, or (at your option) any later version. Porechop_ABI is
+distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with
+Porechop_ABI. If not, see <http://www.gnu.org/licenses/>.
+Author: Quentin Bonenfant (quentin.bonenfant@gmail.com)
+"""
+
 import sys
 import os
 from collections import defaultdict as dd
 import subprocess
-##############################################################################
-#                            CONSENSUS FUNCTIONS                             #
-##############################################################################
 
-KM_SIZE = 16
-THRESHOLD = 0.75
 
+# Best consensus has to be above 30 or it will trigger a warning
+BAD_CONSENSUS_THRESHOLD = 30 
 
 def run_subprocess(program, arguments):
     prog_path = os.path.join(os.path.dirname(
@@ -226,6 +248,11 @@ def build_consensus_adapter_dict(args, adp_count, total_seq):
         compatibles = get_compatibles(mat)
         # Sorting to get be able to display only the best consensus if needed.
         sorted_compat = sort_groups(compatibles, sequences, end, adp_count)
+        
+        # If the user only want the x best consensus
+        box = args.best_of_x
+        # Otherwise, get all consensus.
+        nb_consensus =  box if box != 0 else len(sorted_compat)
         # Computing best consensus.
         for i, group in enumerate(sorted_compat):
             # fetching sequences and counts for this group
@@ -235,6 +262,23 @@ def build_consensus_adapter_dict(args, adp_count, total_seq):
             # storing consensus in similar structure as adp_count,
             # for back-compatibility.
             frequency = round((100*weight) / total_seq, 1)
-            # Relative frequency stored directly into the name
-            consensus_count[end][f"Consensus_{i+1}_({frequency}%)"] = consensus
+            
+            # checking if best consensus is above 30% frequency
+            if(i == 0 and frequency < BAD_CONSENSUS_THRESHOLD):
+                print("/!\\\tThe best consensus use less than 30%",
+                      "of the inferred adapters set.",
+                      file=sys.stderr)
+                print("/!\\\tThe input file either do not contains adapters",
+                    file=sys.stderr)
+                print("/!\\\tor has a highly variable region (ex: barcode).",
+                    file=sys.stderr)
+                print("/!\\\tYou may want to re-run several time in -go mode",
+                    file=sys.stderr)
+                print("/!\\\tand input your adapters manually.",
+                    file=sys.stderr)
+
+            # Only export conensus with high enough frequency (default is all)
+            if(frequency >= args.all_above_x):
+                # Relative frequency stored directly into the name
+                consensus_count[end][f"Consensus_{i+1}_({frequency}%)"] = consensus
     return(consensus_count)

@@ -69,9 +69,9 @@ class PorechopInstall(install):
         install.run(self)  # Run original install code
         shutil.copyfile(os.path.join('porechop', 'cpp_functions.so'),
                         os.path.join(self.install_lib, 'porechop', 'cpp_functions.so'))
-        # adding adaptFinder  file
-        shutil.copyfile(os.path.join('porechop', 'adaptFinder'),
-                        os.path.join(self.install_lib, 'porechop', 'adaptFinder'))
+        # adding approx_counter  file
+        shutil.copyfile(os.path.join('porechop', 'approx_counter'),
+                        os.path.join(self.install_lib, 'porechop', 'approx_counter'))
 
         # adding  compatibility shared library
         shutil.copyfile(os.path.join('porechop', 'compatibility.so'),

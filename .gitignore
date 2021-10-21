@@ -5,6 +5,10 @@
 *.so
 *.o
 
+# Compiled cpp programs
+porechop/approx_counter
+porechop/msa_consensus
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -34,5 +38,6 @@ setuptools*.zip
 gh-md-toc
 
 .directory
+
+# tmp folder (may subsist after testing)
 porechop/tmp*
-porechop/adaptFinder
