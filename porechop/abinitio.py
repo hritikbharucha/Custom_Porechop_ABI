@@ -76,20 +76,18 @@ def print_consensus_result(consensus_adapters, v, print_dest=sys.stderr):
     @param print destination, can be custom, but stdout is default
     """
 
-    out = print_dest
-
     if(v > 0):
         print("\n\nCONSENSUS ADAPTERS:\n",
               file=out)
 
     for end in ENDS:
-        print(end.capitalize(), file=out)
+        print(end.capitalize(), file=print_dest)
         sorted_consensus = sorted(consensus_adapters[end].keys(),
                                   key=lambda x: int(x.split("_")[1]))
         for name in sorted_consensus:
             adp = consensus_adapters[end][name]
-            print(name, file=out)
-            print(adp, file=out)
+            print(name, file=print_dest)
+            print(adp, file=print_dest)
 
 
 def print_result(adapters, v, print_dest=sys.stderr):
@@ -777,7 +775,7 @@ def consensus_adapter(args, prefix, conf_file, v, print_dest):
 
     # If we just need to print the adapter
     if(just_print):
-        print_consensus_result(adapters, v, print_dest)
+        print_consensus_result(adapters, v, sys.stdout)
 
     # If we need to use them, we build porechop Adapter objects
     else:
@@ -844,7 +842,7 @@ def launch_ab_initio(args):
 
         # If we need to just print the adapter, do it
         if(args.guess_adapter_only):
-            print_result(adapters, v, print_dest)
+            print_result(adapters, v, sys.stdout)
         # else export adapter as Adapter object
         else:
             adp = make_adapter_objects(adapters, v, print_dest)
