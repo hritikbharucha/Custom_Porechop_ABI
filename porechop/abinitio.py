@@ -460,8 +460,9 @@ def generic_build(method_fct, name, g, adapters, which_end, v, w, print_dest):
 
         warning(f"Could not compute {which_end} adaper with {name} method")
         warning("The resulting graph probably contains a loop.")
-        warning("For more details, read the error report below;\n")
+        warning("For more details, read the error report below:")
         warning(nxE)
+        warning("\n")
         adapters[which_end][name] = ""
 
     else:

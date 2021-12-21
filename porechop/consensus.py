@@ -29,8 +29,9 @@ from collections import defaultdict as dd
 import subprocess
 
 
-# Best consensus has to be above 30 or it will trigger a warning
-BAD_CONSENSUS_THRESHOLD = 30 
+# Best consensus has to be above 30% or it will trigger a warning
+BAD_CONSENSUS_THRESHOLD = 30
+
 
 def run_subprocess(program, arguments):
     prog_path = os.path.join(os.path.dirname(
@@ -63,26 +64,25 @@ def get_compatibles(mat):
                             clustered.append(j)
                             current.append(j)
             compat.append(current)
-            
         i += 1
     return(compat)
 
 
-"""Build the distance matrix using the 'compatibility' algorithm."""
 def all_vs_all_matrix(sequences):
+    """Build the distance matrix using the 'compatibility' algorithm."""
     from ctypes import CDLL, c_char_p, c_int
     # Gettign path and handle to the library
     prog = "compatibility.so"
     prog_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), prog)
     compatiblity = CDLL(prog_path)
-    
+
     # compatibility function definition
     compatiblity.check_compatibility.argtypes = [c_char_p,
                                                  c_char_p]
     compatiblity.check_compatibility.restype = c_int       # Compatibility flag
     size = len(sequences)
     # matrix init
-    mat = [[-1]* size for _ in range(size)]
+    mat = [[-1] * size for _ in range(size)]
     # computing half the matrix (but filling both sides)
     for i, seq1 in enumerate(sequences):
         l1 = len(seq1)
@@ -93,7 +93,7 @@ def all_vs_all_matrix(sequences):
                 l2 = len(seq2)
                 s1 = seq1.encode('utf-8')
                 s2 = seq2.encode('utf-8')
-                flag  = compatiblity.check_compatibility(s1, s2)
+                flag = compatiblity.check_compatibility(s1, s2)
                 mat[i][j] = flag
                 mat[j][i] = flag
     return(mat)
@@ -106,9 +106,9 @@ def pool_methods(adapters, name):
     @param adapters An adapter dictionnary to concatenate.
     @param name The name of the new method
     """
-    
+
     # New pooled adapter count (nested default dicts)
-    pooled =  dd(lambda: dd(lambda: dd(int)))
+    pooled = dd(lambda: dd(lambda: dd(int)))
     for end in adapters.keys():
         for meth in adapters[end].keys():
             for adp, count in adapters[end][meth].items():
@@ -139,7 +139,7 @@ def seqan_msa_consensus(sequences, end, adp_count):
                 out.write(f">Sequence_{printed_seq}\n{seq}\n")
                 printed_seq += 1
     # Searching path to consensus maker
-    result = run_subprocess("msa_consensus" , ["tmp.fasta"])
+    result = run_subprocess("msa_consensus", ["tmp.fasta"])
     os.remove("tmp.fasta")
     return(result)
 
@@ -158,7 +158,7 @@ def print_mat(mat):
 def est_clique(mat, node_set):
     missing = 0
     lns = len(node_set)
-    origin = node_set[0] # original node
+    origin = node_set[0]  # original node
     for i in range(lns):
         n1 = node_set[i]
         # # DEBUG
@@ -166,10 +166,10 @@ def est_clique(mat, node_set):
         for j in range(i+1, lns):
             n2 = node_set[j]
             # id there is a miss and n2 is not included in the main node
-            if(mat[n1][n2] == 0 and mat[origin][n2]!=2 ):
-                missing +=1
+            if(mat[n1][n2] == 0 and mat[origin][n2] != 2):
+                missing += 1
                 # # DEBUG
-                #print(f"Unlinked node: {n2}")
+                # print(f"Unlinked node: {n2}")
         if(missing >= 2):
             return(False)
     return(True)
@@ -231,7 +231,7 @@ def sort_groups(groups, sequences, end, adp_count):
     """
     sorted_g = sorted(groups,
                       key=lambda x: group_weight(x, sequences, end, adp_count),
-                      reverse = True)
+                      reverse=True)
     return(sorted_g)
 
 
@@ -248,11 +248,11 @@ def build_consensus_adapter_dict(args, adp_count, total_seq):
         compatibles = get_compatibles(mat)
         # Sorting to get be able to display only the best consensus if needed.
         sorted_compat = sort_groups(compatibles, sequences, end, adp_count)
-        
+
         # If the user only want the x best consensus
         box = args.best_of_x
         # Otherwise, get all consensus.
-        nb_consensus =  box if box != 0 else len(sorted_compat)
+        nb_consensus = box if box != 0 else len(sorted_compat)
         # Computing best consensus.
         for i, group in enumerate(sorted_compat):
             # fetching sequences and counts for this group
@@ -262,22 +262,22 @@ def build_consensus_adapter_dict(args, adp_count, total_seq):
             # storing consensus in similar structure as adp_count,
             # for back-compatibility.
             frequency = round((100*weight) / total_seq, 1)
-            
+
             # checking if best consensus is above 30% frequency
             if(i == 0 and frequency < BAD_CONSENSUS_THRESHOLD):
-                print("/!\\\tThe best consensus use less than 30%",
+                print(f"/!\\\tThe best {end} consensus use less than 30%",
                       "of the inferred adapters set.",
                       file=sys.stderr)
                 print("/!\\\tThe input file either do not contains adapters",
-                    file=sys.stderr)
+                      file=sys.stderr)
                 print("/!\\\tor has a highly variable region (ex: barcode).",
-                    file=sys.stderr)
+                      file=sys.stderr)
                 print("/!\\\tYou may want to re-run several time in -go mode",
-                    file=sys.stderr)
+                      file=sys.stderr)
                 print("/!\\\tand input your adapters manually.",
-                    file=sys.stderr)
+                      file=sys.stderr)
 
-            # Only export conensus with high enough frequency (default is all)
+            # Only export consensus with high enough frequency (default is all)
             if(frequency >= args.all_above_x):
                 # Relative frequency stored directly into the name
                 consensus_count[end][f"Consensus_{i+1}_({frequency}%)"] = consensus
