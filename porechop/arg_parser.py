@@ -1,10 +1,10 @@
 """
-Last modified 2021-10-06
+Last modified 2022-03-22
 Author: Quentin Bonenfant (quentin.bonenfant@gmail.com)
 This file is a modified argument parser from Porechop.
 
 
-Copyright 2017-2021 Ryan Wick (rrwick@gmail.com)
+Copyright 2017-2022 Ryan Wick (rrwick@gmail.com)
 https://github.com/rrwick/Porechop
 This module contains the argument parser for Porechop.
 This file is part of Porechop. Porechop is free software:
@@ -56,7 +56,10 @@ def get_arguments():
     abi_group.add_argument('-cap', '--custom_adapters', type=str,
                            help='Path to a custom adapter text file, '
                                 'if you want to manually submit some.')
-
+    abi_group.add_argument('-ddb', '--discard_database', action='store_true',
+                           help='Ignore adapters from the Porechop database. '
+                                'This option require either ab-initio (-abi) '
+                                'or a custom adapter (-cap) to be set.')
 
     consensus_group = parser.add_argument_group('Consensus mode options')
     consensus_group.add_argument('-mr', '--multi_run', type=int, default=1,
@@ -231,4 +234,11 @@ def get_arguments():
     if(args.guess_adapter_only):
         args.ab_initio = True
 
+    # Checking if at least one adapter is in the database
+    if(args.discard_database):
+        if(not(args.ab_initio or args.custom_adapters)):
+            print("At least one adaptater is needed to make Porechop run")
+            print("Please either set -abi option for ab-initio inferrence or")
+            print("specifie a custom adapter set using -cap and a file.")
+            exit(1)
     return args

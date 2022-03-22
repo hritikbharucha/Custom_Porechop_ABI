@@ -654,7 +654,7 @@ int main(int argc, char const ** argv)
     std::string exact_out;   // exact count output file
     std::string config_file; // configuration file
     std::string forbid_kmer; // forbidden kmers file, one kmer per line.
-    uint64_t solid_km= 0;       // Use solid k-mer instead of most frequent
+    uint64_t solid_km= 0;    // Use solid k-mer instead of most frequent
     uint64_t nb_thread = 4;  // default number of thread
     uint64_t k = 16;         // kmer size, 2<= k <= 32
     uint64_t sl = 100 ;      // sequence sampling size

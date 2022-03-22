@@ -1,5 +1,5 @@
 """
-Copyright 2017-2021 Ryan Wick (rrwick@gmail.com)
+Copyright 2017-2022 Ryan Wick (rrwick@gmail.com)
 https://github.com/rrwick/Porechop
 This module contains the main script for Porechop.
 It is executed when a user runs `porechop` after installation or
@@ -14,7 +14,7 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 Porechop. If not, see <http://www.gnu.org/licenses/>.
 Author: Ryan Wick
-Last modified 2021-10-20
+Last modified 2022-03-22
 """
 
 import os
@@ -36,16 +36,15 @@ from .parse_adapter_file import *
 
 def main():
     args = get_arguments()
-    # avoid unnecessary read load by Porechop if we just want to guess adapters.
-    if(not args.guess_adapter_only):
-        reads, check_reads, read_type = load_reads(args.input,
-                                                   args.verbosity,
-                                                   args.print_dest,
-                                                   args.check_reads)
 
     # modifiying global variable ADAPTERS
     global ADAPTERS
 
+    # Clear database if required
+    if(args.discard_database):
+        ADAPTERS = []
+
+    # Add ab-initio adapter to the database
     if(args.ab_initio):
         if(args.verbosity > 0):
             print('\n' + bold_underline('Ab Initio Phase'),
@@ -56,12 +55,16 @@ def main():
         if(args.guess_adapter_only):
             exit()
 
-    # Do we need to add more from a custom adapter file ?
+    # Do we need to add an adapter from a custom adapter file ?
     if(args.custom_adapters):
         ADAPTERS += get_adapters(args.custom_adapters)
 
-
     # Letting Porechop do it's job.
+    reads, check_reads, read_type = load_reads(args.input,
+                                               args.verbosity,
+                                               args.print_dest,
+                                               args.check_reads)
+
     matching_sets = find_matching_adapter_sets(check_reads,
                                                args.verbosity,
                                                args.end_size,
@@ -119,8 +122,6 @@ def main():
                  args.discard_middle, args.min_split_read_size, args.print_dest,
                  args.barcode_dir, args.input, args.untrimmed, args.threads,
                  args.discard_unassigned)
-
-
 
 
 def load_reads(input_file_or_directory, verbosity, print_dest, check_read_count):
