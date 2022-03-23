@@ -13,8 +13,9 @@ The requirement are almost the same as Porechop (Oct 2018 version). You will nee
 See Porechop [documentation](README_PORECHOP.md) 
 
 ### Python3
+~~~
 Version >= 3.6
-
+~~~
 ### Networkx
 
 ~~~
