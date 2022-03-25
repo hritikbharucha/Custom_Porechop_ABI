@@ -439,16 +439,16 @@ sequence_set_type sampleSequences(sequence_set_type & sequence_set, uint64_t nb_
 
         // // we also need to check that the sequence is
         // // at least long enough to contains both adapters.
-        // if( length(sequence_set[ seq_id ]) >= cut_size * 2 ){
-        if(bot){
-            appendValue(sample, suffix(sequence_set[ seq_id ], length(sequence_set[ seq_id ]) - 1 - current_cut_size ));
+        if( length(sequence_set[ seq_id ]) >= cut_size * 2 ){
+            if(bot){
+                appendValue(sample, suffix(sequence_set[ seq_id ], length(sequence_set[ seq_id ]) - 1 - current_cut_size ));
+            }
+            else{
+                appendValue(sample, prefix(sequence_set[ seq_id ], current_cut_size));
+            }
+            
+            nb_seq +=1;
         }
-        else{
-            appendValue(sample, prefix(sequence_set[ seq_id ], current_cut_size));
-        }
-        
-        nb_seq +=1;
-        // }
         i++;
     }
     if(v>0)

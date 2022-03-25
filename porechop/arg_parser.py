@@ -1,5 +1,5 @@
 """
-Last modified 2022-03-22
+Last modified 2022-03-25
 Author: Quentin Bonenfant (quentin.bonenfant@gmail.com)
 This file is a modified argument parser from Porechop.
 
@@ -73,10 +73,10 @@ def get_arguments():
     consensus_group.add_argument('-ec', '--export_consensus', type=str,
                            help='Path to export the intermediate adapters found in '
                                 'consensus mode.')
-    consensus_group.add_argument('-aax', '--all_above_x', type=int, default=0,
+    consensus_group.add_argument('-aax', '--all_above_x', type=int, default=10,
                            help='Only select consensus sequences if they are made '
                                 'using at least x percent of the total adapters. '
-                                'Default is 0 (all consensus are kept).')
+                                'Default is 10%.')
     consensus_group.add_argument('-box', '--best_of_x', type=int, default=0,
                            help='Only select the best x consensus sequences '
                                 'from all consensus found.')

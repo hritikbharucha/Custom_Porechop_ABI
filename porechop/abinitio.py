@@ -609,7 +609,7 @@ def insert_adapter_in_adp_count(adapter, adp_count):
             # updating adapter count
             the_adapter = adapter[which_end][method]
             adp_count[which_end][method][the_adapter] += 1
-            
+
 
 def make_consensus_adapter_objects(adapters, v, print_dest):
     """ Build Adapter object with only start or end sequence.
@@ -622,7 +622,7 @@ def make_consensus_adapter_objects(adapters, v, print_dest):
     adp = []
     if(v >= 1):
         print("Building consensus adapter objects", file=print_dest)
-    
+
     # start
     for consensus_name in adapters["start"].keys():
         adp.append(

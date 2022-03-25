@@ -254,7 +254,7 @@ def build_consensus_adapter_dict(args, adp_count, total_seq):
         # Otherwise, get all consensus.
         nb_consensus = box if box != 0 else len(sorted_compat)
         # Computing best consensus.
-        for i, group in enumerate(sorted_compat):
+        for i, group in enumerate(sorted_compat[:nb_consensus]):
             # fetching sequences and counts for this group
             group_seq = group_sequences(group, sequences[end])
             weight = group_weight(group, sequences, end, adp_count)
