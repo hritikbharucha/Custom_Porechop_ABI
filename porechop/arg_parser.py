@@ -1,5 +1,5 @@
 """
-Last modified 2022-03-25
+Last modified 2022-07-04
 Author: Quentin Bonenfant (quentin.bonenfant@gmail.com)
 This file is a modified argument parser from Porechop.
 
@@ -64,29 +64,27 @@ def get_arguments():
     consensus_group = parser.add_argument_group('Consensus mode options')
     consensus_group.add_argument('-mr', '--multi_run', type=int, default=1,
                            help='Number of time the approximate count must be '
-                                'performed to generate a consensus. '
-                                'Each count file is exported separately.')
+                                 'performed to generate a consensus. '
+                                 'Each count file is exported separately.')
     consensus_group.add_argument('-cr', '--consensus_run', type=int, default=20,
                            help='If using multi-run option, set the number of '
-                                'additional run performed if no stable consensus '
-                                'is immediatly found.')
+                                 'additional run performed if no stable consensus '
+                                 'is immediatly found.')
     consensus_group.add_argument('-ec', '--export_consensus', type=str,
                            help='Path to export the intermediate adapters found in '
-                                'consensus mode.')
+                                 'consensus mode.')
     consensus_group.add_argument('-aax', '--all_above_x', type=int, default=10,
                            help='Only select consensus sequences if they are made '
-                                'using at least x percent of the total adapters. '
-                                'Default is 10%.')
+                                 'using at least x percent of the total adapters. '
+                                 'Default is 10%.')
     consensus_group.add_argument('-box', '--best_of_x', type=int, default=0,
                            help='Only select the best x consensus sequences '
-                                'from all consensus found.')
-
+                                 'from all consensus found.')
 
     graph_group = parser.add_argument_group('Graphs options')
     graph_group.add_argument('--export_graph', type=str,
                            help='Path to export the graphs used for assembly '
                                 '(.graphml format), if you want to keep them')
-
 
     main_group = parser.add_argument_group('Main options')
     main_group.add_argument('-i', '--input', required=True,

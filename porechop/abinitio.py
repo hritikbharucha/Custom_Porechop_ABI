@@ -78,7 +78,7 @@ def print_consensus_result(consensus_adapters, v, print_dest=sys.stderr):
 
     if(v > 0):
         print("\n\nCONSENSUS ADAPTERS:\n",
-              file=out)
+              file=print_dest)
 
     for end in ENDS:
         print(end.capitalize(), file=print_dest)
