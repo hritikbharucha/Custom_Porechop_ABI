@@ -101,7 +101,7 @@ def print_result(adapters, v, print_dest=sys.stderr):
 
     if(v > 0):
         print("\n\nINFERRED ADAPTERS:\n",
-              file=out)
+              file=print_dest)
 
     # Getting methods from the dict directly.
     methods = sorted(adapters[ENDS[0]].keys())
@@ -114,9 +114,9 @@ def print_result(adapters, v, print_dest=sys.stderr):
             meth = meth.capitalize()
             srt = "Start:\t" + srt
             end = "End:\t" + end
-        print(msg, file=out)
-        print(srt, file=out)
-        print(end, file=out)
+        print(msg, file=print_dest)
+        print(srt, file=print_dest)
+        print(end, file=print_dest)
 
 
 def print_adapter_dict(adapters, print_dest=sys.stderr):
@@ -142,9 +142,9 @@ def print_adapter_dict(adapters, print_dest=sys.stderr):
         srt = "Start:\n" + srt
         end = "End:\n" + end
 
-        print(msg, file=out)
-        print(srt, file=out)
-        print(end, file=out)
+        print(msg, file=print_dest)
+        print(srt, file=print_dest)
+        print(end, file=print_dest)
 
 def parse_conf(conf_file):
     """
