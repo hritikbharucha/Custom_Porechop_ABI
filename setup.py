@@ -5,8 +5,8 @@ Run 'python3 setup.py install' to install Porechop.
 
 # Make sure this is being run with Python 3.4 or later.
 import sys
-if sys.version_info.major != 3 or sys.version_info.minor < 4:
-    print('Error: you must execute setup.py using Python 3.4 or later')
+if sys.version_info.major != 3 or sys.version_info.minor < 6:
+    print('Error: you must execute setup.py using Python 3.6 or later')
     sys.exit(1)
 
 import os
@@ -18,10 +18,49 @@ import multiprocessing
 import fnmatch
 import importlib.util
 
+
+def printerr(msg):
+    print(msg, file=sys.stderr)
+
+
+def install_networkx():
+    choice = "_"
+    # Install networkx with the same python executable for compatibility.
+    install_command = [sys.executable, "-m", "pip", "install", "networkx"]
+    while(choice not in "yYnN"):
+        print("We will try to install networkx using pip:")
+        print(" ".join(install_command))
+        choice = input("Do you want to install networkx ? (y / n)\n")
+    if(choice.lower() == "y"):
+        try:
+            subprocess.check_call(install_command)
+
+        except CalledProcessError as e:
+            printerr("Could not install networkx:")
+            printerr(e)
+            exit(1)
+    else:
+        print("Networkx will not be installed.")
+        print("Try again when networkx is installed for your version of python.")
+        print(sys.executable)
+        exit(0)
+
+
 # Install setuptools if not already present.
 if not importlib.util.find_spec("setuptools"):
+    printerr("/!\\Using EZ_setup (setuptools not found)")
     import ez_setup
     ez_setup.use_setuptools()
+
+# Checking if networkx is installed
+if not importlib.util.find_spec("networkx"):
+    printerr("")
+    printerr("##############################")
+    printerr("/!\\networkx was not found/!\\")
+    printerr("##############################")
+    printerr("")
+    install_networkx()
+
 
 from setuptools import setup
 from setuptools.command.install import install
@@ -76,11 +115,11 @@ class PorechopInstall(install):
         # adding  compatibility shared library
         shutil.copyfile(os.path.join('porechop', 'compatibility.so'),
                         os.path.join(self.install_lib, 'porechop', 'compatibility.so'))
-        
+
         # adding  msa consensus exec
         shutil.copyfile(os.path.join('porechop', 'msa_consensus'),
                         os.path.join(self.install_lib, 'porechop', 'msa_consensus'))
-        
+
         # moving config file
         shutil.copyfile(os.path.join('porechop', 'ab_initio.config'),
                         os.path.join(self.install_lib, 'porechop', 'ab_initio.config'))
