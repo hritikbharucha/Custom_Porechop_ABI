@@ -15,15 +15,41 @@ The requirement are almost the same as Porechop (Oct 2018 version). You will nee
 
 See Porechop [documentation](README_PORECHOP.md)
 
-### Python3
+### Python3: Version >= 3.6
+
+With [X] being the version of python you want to install:
+
+On Linux
 ~~~
-Version >= 3.6
+sudo apt-get install python3.[X]
 ~~~
+
+On Mac os (under macports):
+~~~
+sudo port install python3[X]
+~~~
+
 ### Networkx
 
+With Pip:
 ~~~
 pip install networkx
 ~~~
+If you have permission errors, you may want to install it for the current user only:
+~~~
+pip install --user networkx 
+~~~
+
+On linux:
+~~~
+sudo apt-get install python-networkx
+~~~
+On Mac os (under macports):
+~~~
+sudo port install py3[X]-networkx 
+~~~
+With [X] being the version of python you use.
+
 
 ## Installation 
 
@@ -43,7 +69,7 @@ porechop -h
 ```
 
 Notes:
-* If the last command complains about permissions, you may need to run it with `sudo`.
+* If the install command (3rd line) complains about permissions, you may need to run it with `sudo`.
 * Install just for your user: `python3 setup.py install --user`
     * If you get a strange "can't combine user with prefix" error, read [this](http://stackoverflow.com/questions/4495120).
 * Install to a specific location: `python3 setup.py install --prefix=$HOME/.local`
@@ -51,7 +77,7 @@ Notes:
 * If you'd like to specify which compiler to use, set the `CXX` variable: `export CXX=g++-6; python3 setup.py install`
 * Porechop includes `ez_setup.py` for users who don't have [setuptools](https://pypi.python.org/pypi/setuptools) installed, though that script is [deprecated](https://github.com/pypa/setuptools/issues/581). So if you run into any installation problems, make sure setuptools is installed on your computer: `pip3 install setuptools
 * If you had a previous installation of Porechop, it will try to replace it. Setting a different installation folder while already having Porechop installed may lead to conflict when calling `porechop` from command line.
-
+* For retro-compatibility issues, the name of the program remains `porechop`. Since no changes has been made to the internal functions of Porechop, transition to Porechop_ABI should be transparent.
 
 ### Build and run without installation
 
@@ -205,24 +231,29 @@ Porechop --ab_initio_config YOUR_CONFIG.config ...
 ### List of possible parameters:
 ```
   // Sampling options
-  sn        : Number of read to sample
-  sl        : Size of the samples
-  limit     : Number of k-mer kept after counting.
-  solid_km  : Use solid kmers instead of a hard limit. (spefify the minimum count for a k-mer, will override "limit" option).
+  sn        : Number of read to sample (default: 40 000 reads)
+  sl        : Size of the samples (default : 100 bases)
+  limit     : Number of k-mer kept after counting. (default: 500)
+  solid_km  : Use solid kmers instead of a hard limit. (specify the minimum count for a k-mer, will override "limit" option).
   
   // K-mer options
-  k           : K-mer size
+  k           : K-mer size (between 2 and 32, default 16).
   lc          : Low Complexity filter value (default 1.0).
-  forbid_kmer : Forbidden k-mer list.
+  forbid_kmer : Forbidden k-mer list. (list of k-mers, one per line).
   exact_out   : Also export the exact count (mainly for debug / control)
   
   
   // Misc
-  v           : Verbosity level 
+  v           : Verbosity level (0: minimal output, 1: normal, 2: debug).
   nb_thread   : Number of threads used for the approximate counting.
-  skip_end    : Do not process end adapters.
-  nb_of_runs  : Number of run to perform and export at once [/!\ DO NOT MANUALLY SET THIS WHILE RUNNING PORECHOP_ABI]
+  skip_end    : Do not process end adapters. (mostly for debug)
+  nb_of_runs  : Number of run to perform and export at once.
 ```
+
+**Notes:**
+Verbosity, number of threads, and number of runs are copied from the argmuments supplied to Porechop_ABI.
+Changing the value of these parameters in the config file will have no effect.
+If you need to adjust one of them, refer to porechop -h
 
 
 ## Contributors
