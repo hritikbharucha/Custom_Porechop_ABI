@@ -70,7 +70,9 @@ porechop -h
 
 Notes:
 * If the install command (3rd line) complains about permissions, you may need to run it with `sudo`.
-* Install just for your user: `python3 setup.py install --user`
+* In case you get "could not find cpp_function.so" or similar error, you may need to add execution permission to compiled objects.
+`sudo chmod +x <your_install folder>/cpp_function.so`
+* To install just for your user: `python3 setup.py install --user`
     * If you get a strange "can't combine user with prefix" error, read [this](http://stackoverflow.com/questions/4495120).
 * Install to a specific location: `python3 setup.py install --prefix=$HOME/.local`
 * Install with pip (local copy): `pip3 install path/to/Porechop_ABI`
