@@ -24,12 +24,10 @@ const std::string DNA = "ACGT";
 // Max number of errors, need to be fixed at compile time
 const uint8_t MAXERR = 2; 
 
-// Frequency threshold warning
-const float FREQ_THRESHOLD_WARNING = 0.1;
 
 // Setting the index
 typedef FastFMIndexConfig<void, uint32_t, 2, 1> TFastConfig;
-using index_t = Index<StringSet<DnaString>, BidirectionalIndex<FMIndex<void,TFastConfig> > >;
+using index_t = Index<StringSet<Dna5String>, BidirectionalIndex<FMIndex<void,TFastConfig> > >;
 
 // counter type, using unordered map.
 using counter = std::unordered_map<uint64_t,uint64_t>;
@@ -37,7 +35,7 @@ using counter = std::unordered_map<uint64_t,uint64_t>;
 using int_pair = std::pair<uint64_t,uint64_t>;
 using pair_vector = std::vector<int_pair> ;
 // type of sequence set
-using sequence_set_type = StringSet<DnaString> ;
+using sequence_set_type = StringSet<Dna5String> ;
 // vector of boolean used to keep track of kmer positions count.
 using bit_field = std::vector<bool>  ;
 // config file parameter map
@@ -47,14 +45,14 @@ using kmer_set_t = std::set<uint64_t>;
 
 
 /**
-    Convert a Seqan DnaString to uint64_t int.
-    SeqAn already store DnaString in 2 bit representation,
+    Convert a Seqan Dna5String to uint64_t int.
+    SeqAn already store Dna5String in 2 bit representation,
     but it is not easy to access it "as is" or to use it
     as key in a hash map.
     @param The sequence to convert
     @return the kmer in 2 bit format, as an uint64_t int.
 */
-inline uint64_t dna2int(DnaString seq){
+inline uint64_t dna2int(Dna5String seq){
     
     uint64_t value = 0;
     for(auto c : seq){
@@ -64,19 +62,19 @@ inline uint64_t dna2int(DnaString seq){
 }
 
 /**
-    Convert an uint64_t int back to Seqan DnaString
+    Convert an uint64_t int back to Seqan Dna5String
     @param the integer to convert
     @param the size of the kmer
-    @return the kmer in SeqAn DnaString format
+    @return the kmer in SeqAn Dna5String format
 */
-inline DnaString int2dna(uint64_t value, uint8_t k){
+inline Dna5String int2dna(uint64_t value, uint8_t k){
     std::string seq = "";
     for(int i = 0; i< k; i++){
         seq = DNA[value & 3] + seq;
         value >>= 2;
 
     }
-    return(DnaString(seq));
+    return(Dna5String(seq));
 }
 
 
@@ -87,7 +85,6 @@ inline DnaString int2dna(uint64_t value, uint8_t k){
 template<typename TPrintType>
 void print(TPrintType text, int tab = 0)
 {
-
     const auto milis = std::chrono::duration <double, std::milli>(std::chrono::steady_clock::now() - boot_time).count();
     std::cout << "[" << milis << " ms]\t" ;
     for(int i = 0; i < tab; i++){
@@ -132,7 +129,7 @@ arg_map parse_config(std::string inputFile){
         }
     }
     else{
-        std::cout << "/!\\ WARNING: Could not open config file\n";
+        std::cerr << "/!\\ WARNING: Could not open config file\n";
     }
     return(params);
 }
@@ -170,7 +167,7 @@ bool exportCounter(TPrintType & pvec, uint8_t k, std::string output){
         outputFile.close();
     }
     else{
-        print("COULD NOT OPEN FILE " + output);
+        std::cerr << "/!\\ ERROR: COULD NOT OPEN FILE " << output << std::endl;
         return(false);
     }
     return(true);
@@ -308,6 +305,21 @@ struct CompareCount{
 };
 
 
+/**
+    Check if a DNA5 sequence only contains ATCG
+    @param the DNA5 sequence
+    @return True if the sequence do not contains IUPAC chars (only "ACGT" chars).
+ */
+bool is_DNA(Dna5String seq){
+    for(auto c: seq){
+        // If the c is a "N", int representation will be >= 4.
+        if(uint8_t(c) >= 4){
+            return(false);
+        }
+    }
+    return(true);
+}
+
 
 /**
     Check if the kmer is autorised or not
@@ -321,6 +333,7 @@ inline  bool isForbiddenKmer(uint64_t kmer, kmer_set_t & kmer_set){
 
 /**
     Parse a kmer list file and return a kmer set.
+    Only true DNA kmers are accepted (no IUPAC).
     @param the file containging a list of kmer to exclude
     @return A kmer set (set of uint64_t)
 */
@@ -332,13 +345,19 @@ kmer_set_t parse_kmer_list(std::string kmer_file){
     // parsing file
     if( kmer_file_stream.is_open()) {
         for( std::string line; getline( kmer_file_stream, line );){
-            // inserting new kmer
-            kmer_set.insert(dna2int(DnaString(line)));
+            
+            // Converting line to DNA5, invalid chars will be converted to N.
+            Dna5String km = line;
+
+            // Inserting new kmer only if it is standard DNA (ATCG)
+            if(is_DNA(km)){
+                kmer_set.insert(dna2int(km));
+            }
         }
         kmer_file_stream.close();
     }
     else{
-        std::cout << "/!\\ COULD NOT OPEN EXCLUDED KMER FILE, must quit\n";
+        std::cerr << "/!\\ ERROR: COULD NOT OPEN EXCLUDED KMER FILE, must quit\n";
         exit(1);
     }
     return(kmer_set);
@@ -388,7 +407,7 @@ pair_vector get_most_frequent(counter & count_map, uint64_t limit, int k){
 
 /**
     Sample the sequences set and return requested samples cut to size
-    @param Set of sequences to sample (SeqAn StringSet of DnaString)
+    @param Set of sequences to sample (SeqAn StringSet of Dna5String)
     @param Number of sequences to sample
     @param Size of the sampled sequence.
     @return A set of sample sequences cut to size.
@@ -434,11 +453,11 @@ sequence_set_type sampleSequences(sequence_set_type & sequence_set, uint64_t nb_
         uint64_t current_cut_size = std::min(uint64_t(length(sequence_set[ seq_id ])), cut_size);
 
         if(current_cut_size < cut_size and v >= 2){
-            print("/!\\Cut size is longer that current read!");
+            std::cerr << "/!\\ WARNING: Cut size is longer that current read! (read id: " << seq_id << ")."<< std::endl;
         }
 
-        // // we also need to check that the sequence is
-        // // at least long enough to contains both adapters.
+        // we also need to check that the sequence is
+        // at least long enough to contains both adapters.
         if( length(sequence_set[ seq_id ]) >= cut_size * 2 ){
             if(bot){
                 appendValue(sample, suffix(sequence_set[ seq_id ], length(sequence_set[ seq_id ]) - 1 - current_cut_size ));
@@ -452,14 +471,14 @@ sequence_set_type sampleSequences(sequence_set_type & sequence_set, uint64_t nb_
         i++;
     }
     if(v>0)
-        print("Sampled " + std::to_string(length(sample)) + " sequences",1);
+        print("Sampled " + std::to_string(length(sample)) + " sequences", 1);
     return(sample);
 }
 
 
 /**
     Perform a simple exact count of all the k-mers from a sample set of sequences
-    @param Set of sequences (SeqAn StringSet of DnaString)
+    @param Set of sequences (SeqAn StringSet of Dna5String)
     @param k, size of the kmers
     @param threshold of the low complexity filter
     @return a map of the kmer count, with a kmer hash as key.
@@ -468,20 +487,33 @@ sequence_set_type sampleSequences(sequence_set_type & sequence_set, uint64_t nb_
 counter count_kmers(sequence_set_type & sequences, uint8_t k, float threshold, kmer_set_t & kmer_set){
 
     counter count;
-    uint64_t base = std::pow(2,(2*k))-1;
+    unsigned had_n = 0; // keeping track of k-mers with N
     for(auto seq: sequences){
+        unsigned i = 0;
+        uint64_t n; // storing k-mers in 2 bit format as 64 bit int using C++ std types.
         // First kmer
-        uint64_t n = dna2int(DnaString(prefix(seq,k-1)));
-        unsigned i = k-1;
-        while(i < length(seq)){ 
-            
-            n <<= 2; 
-            n = (n & base) |  (uint8_t)(seq[i]);
-            if(not haveLowComplexity(n,k,threshold) and not isForbiddenKmer(n,kmer_set)){
-                count[n] +=1 ;
-            }           
+        Infix<Dna5String>::Type km = infix(seq, i, i+k);
+        while(i+k <= length(seq)){ 
+            // If current k-mer does not contains N or other IUPAC chars, proceed
+            if(is_DNA(km)){
+                n = dna2int(km); // converting k-mer to int representation
+                // If the k-mers is not forbidden or low complexity, add to count.
+                if(not haveLowComplexity(n, k,threshold) and not isForbiddenKmer(n, kmer_set)){
+                    count[n] +=1;
+                }
+            }
+            else{
+                had_n ++;
+            }
+            // Updating k-mer
             i++;
+            km = infix(seq, i, i+k);
         }
+    }
+    if(had_n > 0){
+        std::cerr << "/!\\ WARNING: This dataset contained sequences with 'N' symbols. ";
+        std::cerr << "/!\\ WARNING: Current implementation ignores k-mers containing 'N'.";
+        std::cerr << "/!\\ WARNING: A total of "<< had_n << " k-mers were ignored." << std::endl;
     }
     return(count);
 }
@@ -489,7 +521,7 @@ counter count_kmers(sequence_set_type & sequences, uint8_t k, float threshold, k
 
 /**
     Search and count a list of kmer in a set of sequences, at a Levenstein distance of at most 2.
-    @param Set of sequences (SeqAn StringSet of DnaString)
+    @param Set of sequences (SeqAn StringSet of Dna5String)
     @param the previous count of exact kmer (the kmer list)
     @param number of thread to use
     @param k, size of the kmers
@@ -521,7 +553,7 @@ counter errorCount( sequence_set_type & sequences, pair_vector & exact_count, ui
         std::array<bit_field,3> tcount;
 
         // Delegate function for SeqAn find function (process occurences)
-        auto delegateParallel = [& tcount](auto & iter, const DnaString & needle, int errors)
+        auto delegateParallel = [& tcount](auto & iter, const Dna5String & needle, int errors)
         {
             (void)needle; // casting to void to avoid "unused variable" warning
             // Needle is required for the delegate to be accepted but is not needed in this program.
@@ -637,19 +669,35 @@ seqan::ArgumentParser::ParseResult get_args(seqan::ArgumentParser & parser, int 
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
+//
+//          MAIN FUNCTION
+//
+///////////////////////////////////////////////////////////////////////////////
+
+
 int main(int argc, char const ** argv)
 {
-    // Setup ArgumentParser.
+    ////////////////////////////////////////////
+    //
+    //    ARGUMENT PARSER
+    //
+    ////////////////////////////////////////////
+
+    ////////////////////////
+    // SeqAn ArgumentParser
+    ////////////////////////
+
     seqan::ArgumentParser parser("adaptFinder");
     // Parsing
     seqan::ArgumentParser::ParseResult res = get_args(parser, argc, argv);
-    
+
     // If parsing was not successful then exit with code 1. if there were errors.
     // Otherwise, exit with code 0 (e.g. help was printed).
     if (res != seqan::ArgumentParser::PARSE_OK)
         return res == seqan::ArgumentParser::PARSE_ERROR;
 
-    // Extract option values and print them.
+    // Default values for parameters
     std::string output = "out.txt";     // output file
     std::string exact_out;   // exact count output file
     std::string config_file; // configuration file
@@ -660,18 +708,21 @@ int main(int argc, char const ** argv)
     uint64_t sl = 100 ;      // sequence sampling size
     uint64_t sn = 40000;     // number of sequence sampled
     uint64_t limit = 500;    // number of kmers to keep.
-    double lc = 1.2;         // low complexity filter threshold, allow all known adapters to pass.
+    float param_lc = 1.0;    // low complexity filter threshold, allow all known adapters to pass.
     uint64_t v = 1;          // verbosity
     bool skip_end = false;   // skip end adapter ressearch
     uint64_t nb_of_runs = 1; // Number of counts to run
+    float lc = 1.0;          // adjusted LC filter threshold
 
+    ////////////////////////
+    // Config File 
+    ////////////////////////
 
     getOptionValue(config_file, parser, "conf");
-
     // reading config file, if any, and adjusting variables.
     if(not config_file.empty() ){
         arg_map params = parse_config(config_file);
-        lc        = params.count("lc" )>0 ? std::stof(params["lc"] ) : lc;
+        param_lc  = params.count("lc" )>0 ? std::stof(params["lc"] ) : lc;
         k         = params.count("k"  )>0 ? std::stoi(params["k"]  ) : k;
         v         = params.count("v"  )>0 ? std::stoi(params["v"]  ) : v;
         sn        = params.count("sn" )>0 ? std::stoi(params["sn"] ) : sn;
@@ -685,9 +736,13 @@ int main(int argc, char const ** argv)
         nb_of_runs  = params.count("mr" )>0 ? std::stoi(params["mr"] ) : nb_of_runs;    
     }
 
+    /////////////////////////////////
+    // Assigning values to variables.
+    /////////////////////////////////
+
     // If options have been manually set, override config.
     getOptionValue(limit, parser, "lim");
-    getOptionValue(lc, parser, "lc");
+    getOptionValue(param_lc, parser, "lc");
     getOptionValue(k, parser, "k");
     getOptionValue(v, parser, "v");
     getOptionValue(sl, parser, "sl");
@@ -699,18 +754,13 @@ int main(int argc, char const ** argv)
     getOptionValue(solid_km, parser, "sk");
     getOptionValue(nb_of_runs, parser, "mr");
 
-    // except for flags, check if they are set in either config or manually
+    // Except for flags, check if they are set in either config or manually
     skip_end = skip_end or isSet(parser, "skip_end");
-    
-    // input file, always required
+
+    // Input file, always required
     std::string input_file;
     getArgumentValue(input_file, parser, 0);
 
-    // Adjusting "multi run" verbosity to avoid flooding stdout.
-    int mr_v = 0;
-    if(nb_of_runs >1){
-        mr_v =  v;
-    }
     // Set of forbidden k-mers.
     kmer_set_t kmer_set;
     if(not forbid_kmer.empty()){
@@ -718,56 +768,75 @@ int main(int argc, char const ** argv)
         kmer_set = parse_kmer_list(forbid_kmer);
     }
 
+    // Adjusting "multi run" verbosity to avoid flooding stdout.
+    int mr_v = v;
+    if(nb_of_runs > 1 and v < 2){
+        mr_v =  0;
+    }
+
     std::string warning = "/!\\ WARNING: ";
+    std::string error_pref = "/!\\ ERROR: ";
 
     // checking value for k
     if( k<2 or k>32 ){
-        throw std::invalid_argument("kmer size must be between 2 and 32 (included)");
+        throw std::invalid_argument(error_pref + "kmer size must be between 2 and 32 (included)");
     }
-    
+    // checking if  k is bigger than sampling length
+    if( k > sl ){
+        throw std::invalid_argument(error_pref + "kmer size must be smaller than the sampling length (k <= sl)");
+    }
+
+    // adjusting low complexity to kmer size, from a k16 base.
+    lc = adjust_threshold(param_lc, 16, k );
+
     // print parameters
     if(v>0){
         std::cout << "Kmer size:             " << k         << std::endl;
         std::cout << "Sampled sequences:     " << sn        << std::endl;
         std::cout << "Sampling length        " << sl        << std::endl;
-        std::cout << "Number of kept kmer:   " << limit     << std::endl;
-        std::cout << "LC filter threshold:   " << lc        << std::endl;
+        std::cout << "LC filter threshold:   " << param_lc  << std::endl;
+        std::cout << "Adjusted LC threshold: " << lc        << std::endl;
         std::cout << "Nb thread:             " << nb_thread << std::endl;
         if(solid_km != 0){
             std::cout << "Solid kmers:           " << solid_km << std::endl;
         }
-        std::cout << "Verbosity level:       " << v         << std::endl;
-        std::cout << "Multi-run verbosity:   " << mr_v      << std::endl;
+        else{
+            std::cout << "Number of kept kmer:   " << limit     << std::endl;
+        }
+        std::cout << "Number of runs:        " << nb_of_runs << std::endl;
+        std::cout << "Verbosity level:       " << v          << std::endl;
     }
 
     // number of tab to display
     int tab_level = 0;
-    // adjusting low complexity to kmer size
-    lc = adjust_threshold( lc, 16, k );
-    if(v>0)
-        std::cout << "Adjusted LC threshold: " << lc << std::endl;
 
     // if we run counts more than one time
     if(v > 0 and nb_of_runs >1){
         std::cout << "\nA total of " << nb_of_runs <<" runs will be performed."<< std::endl;
     }
 
-
     // Parsing input fasta file.
     StringSet<CharString> ids;
-    StringSet<DnaString> seqs;
-    if(v>0)
+    StringSet<Dna5String> seqs;
+    if(v>0){
         print("Parsing FASTA file",tab_level);
+    }
     SeqFileIn seqFileIn(toCString(input_file));
     readRecords(ids, seqs, seqFileIn);
+
+    // Display number of sequences
+    if(v>0){
+        unsigned nb_seq = length(seqs);
+        print("Number of sequences found: " + std::to_string(nb_seq) + ".", tab_level);
+    }
 
     // MAIN LOOP: STARTING K-MER COUNTING
     std::string run_suffix = "";
     for(uint64_t current_run = 0; current_run < nb_of_runs; current_run++){
-        // If we build run than one count, add a suffix
+        // If we run more than once, add a suffix
         if(nb_of_runs > 1){
             if(v>0)
-                std::cout << "Starting run number " << current_run << std::endl;
+                std::cout << "Starting run number " << current_run + 1 << std::endl;
             run_suffix = "_" + std::to_string(current_run);
         }
         // Checking if we can sample the requested number of sequences, else return the whole set
@@ -780,16 +849,18 @@ int main(int argc, char const ** argv)
 
         // general flag for file output
         bool success = true;
-        
+
         // performing ressearch on both ends
         std::array<std::string, 2 > ends = {"start","end"};
-        
+
         bool bottom = false; // checking if we search top adapter(start) or bottom adapter (end)
+        tab_level += 1;
         for(std::string which_end: ends){
 
-            tab_level += 1;
+            if(v>0){
+                print("Working on sequence " + which_end + ".", tab_level -1);
+            }
             if(mr_v>0){
-                print("Working on " + which_end + " adapter", tab_level - 1);
                 // sample and cut sequences to required length
                 print("Sampling",tab_level);
             }
@@ -797,8 +868,9 @@ int main(int argc, char const ** argv)
 
 
             // counting k-mers on the sampled sequences
-            if(mr_v>0)
+            if(mr_v>0){
                 print("Exact k-mer count", tab_level);
+            }
             counter count = count_kmers(sample, k, lc, kmer_set);
             
             //  DEBUG
@@ -807,24 +879,28 @@ int main(int argc, char const ** argv)
             */
 
             // keeping most frequents kmers
-            if(mr_v>0)
+            if(mr_v>0){
                 print("Number of kmer found: " + std::to_string(count.size()), tab_level);
+            }
             
             // Either keep the most frequent kmers or keep solid kmers.
             pair_vector first_n_vector;
             if(solid_km != 0){
-                if(mr_v>0)
+                if(mr_v>0){
                     print("Keeping solid k-mer", tab_level);
+                }
                 first_n_vector = get_solid_kmers(count, solid_km);
             }
             else{
-                if(mr_v>0)
+                if(mr_v>0){
                     print("Keeping most frequent k-mer", tab_level);
+                }
                 first_n_vector = get_most_frequent(count, limit, k);
             }
             
-            if(mr_v>0)
+            if(mr_v>0){
                 print("Number of kmer kept:  " + std::to_string(first_n_vector.size()), tab_level ) ;
+            }
             
 
             // Exporting exact kmer count, if required
@@ -833,36 +909,33 @@ int main(int argc, char const ** argv)
                     print("Exporting exact kmer count", tab_level);
                 success = exportCounter(first_n_vector, k, exact_out + run_suffix + "." + which_end );
                 if(!success){
-                    std::cerr << "Error: Failed to export exact k-mer count" << std::endl ;
+                    std::cerr << error_pref + "Failed to export exact k-mer count" << std::endl ;
+                    std::cerr << "Path: " << exact_out + run_suffix + "." + which_end << std::endl ;
                     return(1);
                 }
             }
 
             // Counting with at most 2 errors
-            if(mr_v>0)
+            if(mr_v>0){
                 print("Approximate k-mer count",tab_level);
+            }
             counter error_counter = errorCount(sample, first_n_vector, nb_thread, k, mr_v);
             pair_vector sorted_error_count = get_most_frequent(error_counter, limit, k);
 
-            if(mr_v>0)
+            if(mr_v>0){
                 print("Exporting approximate count",tab_level);
+            }
             success = exportCounter(sorted_error_count,k, output + run_suffix + "." + which_end );
             if(!success){
-                    std::cerr << "Error: Failed to export approximate k-mer count" << std::endl ;
+                    std::cerr << error_pref + "Failed to export approximate k-mer count" << std::endl ;
+                    std::cerr << "Path: " << output + run_suffix + "." + which_end << std::endl ;
                     return(1);
             }
 
-            /*// Print a warning in stderr if we think adapter may have been trimmed.
-            if(sorted_error_count[0].second < FREQ_THRESHOLD_WARNING * sn){
-                std::cerr << warning << "The most frequent kmer has been found in less than ";
-                std::cerr << std::round(10000 * FREQ_THRESHOLD_WARNING)/100;
-                std::cerr << "% of the reads " << which_end <<"s after approximate count. ";
-                std::cerr << "(" << sorted_error_count[0].second << "/" << sn << " sequences)" <<std::endl;
-                std::cerr << warning << "It could mean this file is already trimmed or the sample do not contains detectable adapters." << std::endl;
-            }*/
 
-            if(mr_v>0)
+            if(mr_v>0){
                 print("Done",tab_level);
+            }
             
             clear(sample);
             
@@ -876,9 +949,9 @@ int main(int argc, char const ** argv)
             else{
                 bottom = true;
             }
-            
-            tab_level -= 1;
-        }
+          
+        } 
+        tab_level --;
     }
 
     return 0;

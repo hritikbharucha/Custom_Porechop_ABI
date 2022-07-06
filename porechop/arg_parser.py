@@ -1,5 +1,5 @@
 """
-Last modified 2022-07-04
+Last modified 2022-07-06
 Author: Quentin Bonenfant (quentin.bonenfant@gmail.com)
 This file is a modified argument parser from Porechop.
 
@@ -21,9 +21,39 @@ Original Author: Ryan Wick
 
 import argparse
 import multiprocessing
-from .misc import MyHelpFormatter
+from .misc import MyHelpFormatter, get_compression_type
 from .version import __version__
 import sys
+import os
+import gzip
+
+
+def read_counter(filename):
+    """
+    Count reads in a FASTA or FASTQ file.
+    This function is really dumb, and can be fooled
+    easily.
+    TODO: Improve reliability and speed of this function.
+    @param a filename with a fasta/fastq, compressed or not
+    @return the number of read that are  (probably) in the file.
+    """
+    if not os.path.isfile(filename):
+        sys.exit('Error: could not find ' + filename)
+    if get_compression_type(filename) == 'gz':
+        open_func = gzip.open
+    else:  # plain text
+        open_func = open
+    read_count = {">": 0, "@": 0}
+    with open_func(filename, 'rt') as seq_file:
+        for line in seq_file:
+            try:
+                first_char = line[0]
+            except UnicodeDecodeError:
+                first_char = ''
+            finally:
+                if first_char in ">@":
+                    read_count[first_char] += 1
+    return(max(read_count[">"], read_count["@"]))
 
 
 def get_arguments():
@@ -44,15 +74,14 @@ def get_arguments():
                            help='Try to infer the adapters from the read set '
                            'instead of just using the static database.')
     abi_group.add_argument('-go', '--guess_adapter_only', action='store_true',
-                           help='Just display the inferred adapters then quit.')
+                           help='Just display the inferred adapters and quit.')
     abi_group.add_argument('-abc', '--ab_initio_config', type=str,
                            help='Path to a custom config file for the '
                            'ab_initio phase (default file in Porechop folder)')
-    abi_group.add_argument('-ws', '--window_size', type=int, default=3,
-                           help='Size of the smoothing window used in the '
-                           'drop cut algorithm. (default is 3, set to 1 to disable).')
-    abi_group.add_argument('-ndc', '--no_drop_cut', action='store_true',
-                           help='Disable the drop cut step entirely')
+    abi_group.add_argument('-tmp', '--temp_dir', type=str, default='./tmp',
+                           help='Path to a writable temporary directory.'
+                           'Directory will be created if it does not exists.'
+                           'Default is ./tmp, from the working directory.')
     abi_group.add_argument('-cap', '--custom_adapters', type=str,
                            help='Path to a custom adapter text file, '
                                 'if you want to manually submit some.')
@@ -60,16 +89,22 @@ def get_arguments():
                            help='Ignore adapters from the Porechop database. '
                                 'This option require either ab-initio (-abi) '
                                 'or a custom adapter (-cap) to be set.')
+    abi_group.add_argument('-ws', '--window_size', type=int, default=3,
+                           help='Size of the smoothing window used in the '
+                           'drop cut algorithm. (set to 1 to disable).')
+    abi_group.add_argument('-ndc', '--no_drop_cut', action='store_true',
+                           help='Disable the drop cut step entirely')
 
     consensus_group = parser.add_argument_group('Consensus mode options')
-    consensus_group.add_argument('-mr', '--multi_run', type=int, default=1,
-                           help='Number of time the approximate count must be '
-                                 'performed to generate a consensus. '
-                                 'Each count file is exported separately.')
+    consensus_group.add_argument('-nr', '--number_of_run', type=int, default=10,
+                           help='Number of time the core module must be '
+                                 'run to generate the first consensus. '
+                                 'Each count file is exported separately.'
+                                 'Set to 1 for single run mode.')
     consensus_group.add_argument('-cr', '--consensus_run', type=int, default=20,
-                           help='If using multi-run option, set the number of '
-                                 'additional run performed if no stable consensus '
-                                 'is immediatly found.')
+                           help='With -nr option higher than 1, set the number'
+                                 'of additional runs performed if no stable '
+                                 'consensus is immediatly found.')
     consensus_group.add_argument('-ec', '--export_consensus', type=str,
                            help='Path to export the intermediate adapters found in '
                                  'consensus mode.')
@@ -83,8 +118,8 @@ def get_arguments():
 
     graph_group = parser.add_argument_group('Graphs options')
     graph_group.add_argument('--export_graph', type=str,
-                           help='Path to export the graphs used for assembly '
-                                '(.graphml format), if you want to keep them')
+                             help='Path to export the assembly graphs '
+                             '(.graphml format), if you want to keep them')
 
     main_group = parser.add_argument_group('Main options')
     main_group.add_argument('-i', '--input', required=True,
@@ -194,11 +229,12 @@ def get_arguments():
     try:
         scoring_scheme = [int(x) for x in args.scoring_scheme.split(',')]
     except ValueError:
-        sys.exit('Error: incorrectly formatted scoring scheme')
+        sys.exit('Error: incorrectly formatted scoring scheme, value error.')
     if len(scoring_scheme) != 4:
         sys.exit('Error: incorrectly formatted scoring scheme, expected 4 values.')
     args.scoring_scheme_vals = scoring_scheme
 
+    # Checking Barcodes
     if args.barcode_dir is not None and args.output is not None:
         sys.exit(
             'Error: only one of the following options may be used: --output, --barcode_dir')
@@ -218,15 +254,30 @@ def get_arguments():
         sys.exit('Error: at least one thread required')
 
     # Checking if number of ab_initio run is above 1
-    if(args.multi_run < 1):
-        print("Ab-Initio multi-runs can only be set at 1 or above.")
-        print("Setting to 1")
-        args.multi_run = 1
+    if(args.number_of_run < 1):
+        print("Ab-Initio number of runs (-nr) can only be set at 1 or above.",
+              file=stderr)
+        exit(1)
+
     # Same for consensus runs
-    if(args.consensus_run < 1):
-        print("Ab-Initio supplementary (consensus) runs can not be below 1")
-        print("Setting to 1")
-        args.consensus_run = 1
+    if(args.consensus_run < 0):
+        print("Ab-Initio supplementary runs (-cr) can not be below 0",
+              file=sys.stderr)
+        exit(1)
+
+    # Checking if input file can be read
+    if(not os.access(args.input, os.R_OK)):
+        print("Input file can not be read.")
+        print("Received:", args.input)
+        sys.exit('Error: Input file not readable.')
+
+    # Counting the number of reads in the file.
+    # Storing that in args, since it kind of is one (just not explicitly given)
+    if(args.verbosity > 1):
+        print(f"Fast count of the number of reads...")
+    args.nb_reads = read_counter(args.input)
+    if(args.verbosity > 1):
+        print(f"{args.nb_reads} sequences detected in read file.")
 
     # Force setting ab_initio if we only want to find adapter.
     if(args.guess_adapter_only):

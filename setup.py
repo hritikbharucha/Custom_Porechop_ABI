@@ -23,15 +23,20 @@ def printerr(msg):
     print(msg, file=sys.stderr)
 
 
-def install_networkx():
+def get_choice(msg):
     choice = "_"
+    while(choice not in "yYnN"):
+        choice = input(msg + " (y / n)\n")
+    return(choice in "yY")
+
+
+def install_networkx():
     # Install networkx with the same python executable for compatibility.
     install_command = [sys.executable, "-m", "pip", "install", "networkx"]
-    while(choice not in "yYnN"):
-        print("We will try to install networkx using pip:")
-        print(" ".join(install_command))
-        choice = input("Do you want to install networkx ? (y / n)\n")
-    if(choice.lower() == "y"):
+    print("We will try to install networkx using pip:")
+    print(" ".join(install_command))
+    agreed = get_choice("Do you want to install networkx now?")
+    if(agreed):
         try:
             subprocess.check_call(install_command)
 

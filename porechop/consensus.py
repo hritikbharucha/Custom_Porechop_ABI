@@ -124,8 +124,9 @@ def merge_adapter_set(adp1, adp2):
             adp1[end][meth] = adp2[end][meth]
 
 
-def seqan_msa_consensus(sequences, end, adp_count):
-    with open("tmp.fasta", "w") as out:
+def seqan_msa_consensus(sequences, tmp_dir, end, adp_count):
+    tmp_fasta = os.path.join(tmp_dir, "tmp.fasta")
+    with open(tmp_fasta, "w") as out:
         printed_seq = 0
         methods = adp_count[end].keys()
         for seq in sequences:
@@ -139,8 +140,8 @@ def seqan_msa_consensus(sequences, end, adp_count):
                 out.write(f">Sequence_{printed_seq}\n{seq}\n")
                 printed_seq += 1
     # Searching path to consensus maker
-    result = run_subprocess("msa_consensus", ["tmp.fasta"])
-    os.remove("tmp.fasta")
+    result = run_subprocess("msa_consensus", [tmp_fasta])
+    os.remove(tmp_fasta)
     return(result)
 
 
@@ -244,10 +245,15 @@ def build_consensus_adapter_dict(args, adp_count, total_seq):
     consensus_count = dd(lambda: dd(lambda: dd(int)))
     sequences = adpcount_2_sequences(adp_count)
     for end in adp_count.keys():
+        # Alignement matrix and compatibility clustering.
         mat = all_vs_all_matrix(sequences[end])
         compatibles = get_compatibles(mat)
-        # Sorting to get be able to display only the best consensus if needed.
+
+        # Sorting to get only the best consensus if needed.
         sorted_compat = sort_groups(compatibles, sequences, end, adp_count)
+
+        # temp_dir to store fasta file
+        tmp_dir = args.temp_dir
 
         # If the user only want the x best consensus
         box = args.best_of_x
@@ -258,7 +264,7 @@ def build_consensus_adapter_dict(args, adp_count, total_seq):
             # fetching sequences and counts for this group
             group_seq = group_sequences(group, sequences[end])
             weight = group_weight(group, sequences, end, adp_count)
-            consensus = seqan_msa_consensus(group_seq, end, adp_count)
+            consensus = seqan_msa_consensus(group_seq, tmp_dir, end, adp_count)
             # storing consensus in similar structure as adp_count,
             # for back-compatibility.
             frequency = round((100*weight) / total_seq, 1)
@@ -274,11 +280,11 @@ def build_consensus_adapter_dict(args, adp_count, total_seq):
                       file=sys.stderr)
                 print("/!\\\tYou may want to re-run several time in -go mode",
                       file=sys.stderr)
-                print("/!\\\tand input your adapters manually.",
+                print("/!\\\tand input manually curated adapters with -cap.",
                       file=sys.stderr)
 
             # Only export consensus with high enough frequency (default is all)
             if(frequency >= args.all_above_x):
                 # Relative frequency stored directly into the name
-                consensus_count[end][f"Consensus_{i+1}_({frequency}%)"] = consensus
+                consensus_count[end][f"Consensus_{i+1}_{end}_({frequency}%)"] = consensus
     return(consensus_count)

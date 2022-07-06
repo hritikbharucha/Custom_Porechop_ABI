@@ -100,7 +100,7 @@ Porechop_abi offers several new options.
 --ab_initio / -abi
 ```
 
-This flag allows to first guess the adapters sequences from the reads, add the sequence to the list of Porechop adapters and then run Porechop as usual.  It is compatible with all Porechop options, but trying  behave poorly on on barcoded reads.
+This flag allows to first guess the adapters sequences from the reads, add the sequence to the list of Porechop adapters and then run Porechop as usual. It is compatible with all Porechop options, but behave poorly on on barcoded reads.
 
 
 ```bash

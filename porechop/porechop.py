@@ -14,7 +14,7 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 Porechop. If not, see <http://www.gnu.org/licenses/>.
 Author: Ryan Wick
-Last modified 2022-03-22
+Last modified 2022-07-06
 """
 
 import os
@@ -59,12 +59,11 @@ def main():
     if(args.custom_adapters):
         ADAPTERS += get_adapters(args.custom_adapters)
 
-    # Letting Porechop do it's job.
+    # Letting Porechop do its job.
     reads, check_reads, read_type = load_reads(args.input,
                                                args.verbosity,
                                                args.print_dest,
                                                args.check_reads)
-
     matching_sets = find_matching_adapter_sets(check_reads,
                                                args.verbosity,
                                                args.end_size,
