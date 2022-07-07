@@ -198,7 +198,7 @@ Each adapters will be named using the adapter name as a prefix, like:
 
 
 ```bash
---discard_database  / ddb
+--discard_database  / -ddb
 ```                              
 In case you supply your own adapters, it can be usefull (and faster) to ignore the adapters from the Porechop database.
 This option was added for this situation, and require either ab-initio (-abi) or a custom adapter (-cap) to be set.(default: False)
