@@ -251,6 +251,21 @@ def get_arguments():
     else:
         args.print_dest = sys.stdout
 
+    # Force setting ab_initio if we only want to find adapter.
+    if(args.guess_adapter_only):
+        args.ab_initio = True
+
+    # checking if abi and barcode options are set at the same time
+    if(args.barcode_dir is not None and args.ab_initio):
+        print("#"*60, file=sys.stderr)
+        print("/!\\ WARNING: Ab-initio mode is not meant to work with barcoded"
+              " datasets.\n Adapter inference may not work as expected.",
+              file=sys.stderr)
+        print("#"*60, file=sys.stderr)
+        print("Please avoid using -b and -abi at the same time.\n"
+              "Press return/enter key to continue.")
+        input()
+
     if args.threads < 1:
         sys.exit('Error: at least one thread required')
 
@@ -280,9 +295,6 @@ def get_arguments():
     if(args.verbosity > 1):
         print(f"{args.nb_reads} sequences detected in read file.")
 
-    # Force setting ab_initio if we only want to find adapter.
-    if(args.guess_adapter_only):
-        args.ab_initio = True
 
     # Checking if at least one adapter is in the database
     if(args.discard_database):
