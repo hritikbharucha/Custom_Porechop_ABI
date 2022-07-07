@@ -1,5 +1,5 @@
 """
-Last modified 2022-07-06
+Last modified 2022-07-07
 Author: Quentin Bonenfant (quentin.bonenfant@gmail.com)
 This file is a modified argument parser from Porechop.
 
@@ -62,7 +62,8 @@ def get_arguments():
     """
     default_threads = min(multiprocessing.cpu_count(), 16)
 
-    parser = argparse.ArgumentParser(description='Porechop_ABI: ab initio version of Porechop. '
+    parser = argparse.ArgumentParser(description=f'Porechop_ABI v_{__version__}: '
+                                                 'Ab Initio version of Porechop. '
                                                  'A tool for finding adapters in Oxford '
                                                  'Nanopore reads, trimming them from the ends and '
                                                  'splitting reads with internal adapters',
@@ -78,10 +79,10 @@ def get_arguments():
     abi_group.add_argument('-abc', '--ab_initio_config', type=str,
                            help='Path to a custom config file for the '
                            'ab_initio phase (default file in Porechop folder)')
-    abi_group.add_argument('-tmp', '--temp_dir', type=str, default='./tmp',
-                           help='Path to a writable temporary directory.'
-                           'Directory will be created if it does not exists.'
-                           'Default is ./tmp, from the working directory.')
+    abi_group.add_argument('-tmp', '--temp_dir', type=str, default="./tmp",
+                           help='Path to a writable temporary directory. '
+                           'Directory will be created if it does not exists. '
+                           'Default is ./tmp')
     abi_group.add_argument('-cap', '--custom_adapters', type=str,
                            help='Path to a custom adapter text file, '
                                 'if you want to manually submit some.')
@@ -99,7 +100,7 @@ def get_arguments():
     consensus_group.add_argument('-nr', '--number_of_run', type=int, default=10,
                            help='Number of time the core module must be '
                                  'run to generate the first consensus. '
-                                 'Each count file is exported separately.'
+                                 'Each count file is exported separately. '
                                  'Set to 1 for single run mode.')
     consensus_group.add_argument('-cr', '--consensus_run', type=int, default=20,
                            help='With -nr option higher than 1, set the number'
@@ -111,7 +112,7 @@ def get_arguments():
     consensus_group.add_argument('-aax', '--all_above_x', type=int, default=10,
                            help='Only select consensus sequences if they are made '
                                  'using at least x percent of the total adapters. '
-                                 'Default is 10%.')
+                                 'Default is 10%%.')
     consensus_group.add_argument('-box', '--best_of_x', type=int, default=0,
                            help='Only select the best x consensus sequences '
                                  'from all consensus found.')
