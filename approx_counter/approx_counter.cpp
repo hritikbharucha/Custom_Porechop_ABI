@@ -834,10 +834,10 @@ int main(int argc, char const ** argv)
     std::string run_suffix = "";
     for(uint64_t current_run = 0; current_run < nb_of_runs; current_run++){
         // If we run more than once, add a suffix
+        run_suffix = "_" + std::to_string(current_run);
         if(nb_of_runs > 1){
             if(v>0)
                 std::cout << "Starting run number " << current_run + 1 << std::endl;
-            run_suffix = "_" + std::to_string(current_run);
         }
         // Checking if we can sample the requested number of sequences, else return the whole set
         uint64_t sequence_set_size = length(seqs);

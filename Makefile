@@ -32,8 +32,9 @@ OBJECTS      = $(SOURCES:.cpp=.o)
 
 
 # Adapt finder (k-mer approximate counter)
-APPROXCOUNTER_SRC = approx_counter/approx_counter.cpp
-APPROXCOUNTER_TGT = porechop/approx_counter
+APPROXCOUNTER_SRC  = approx_counter/approx_counter.cpp
+APPROXCOUNTER_TGT  = porechop/approx_counter
+APPROXCOUNTER_FLAG = -DSEQAN_HAS_ZLIB=1
 
 # Compatibility flag library
 COMPAT_TGT = porechop/compatibility.so
@@ -55,11 +56,12 @@ ifeq ($(PLATFORM), Darwin)
 SONAME	= -install_name
 OMP 	= 
 LRT 	= 
-
+lz      =
 else
 SONAME	= -soname
 OMP 	= -fopenmp
 LRT 	= -lrt
+LZ      = -lz
 endif
 
 
@@ -78,7 +80,7 @@ $(TARGET): $(OBJECTS)
 	$(CXX) $(FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,$(SONAME),$(TARGET) -o $(TARGET) $(OBJECTS)
 
 $(APPROXCOUNTER_TGT):
-	$(CXX) $(FLAGS) $(OMP) $(CXXFLAGS)  $(APPROXCOUNTER_SRC) $(LRT) -o $(APPROXCOUNTER_TGT)
+	$(CXX) $(FLAGS) $(APPROXCOUNTER_FLAG) $(OMP) $(CXXFLAGS)  $(APPROXCOUNTER_SRC) $(LRT) $(LZ) -o $(APPROXCOUNTER_TGT)
 
 $(COMPAT_TGT): $(COMPAT_OBJ)
 	$(CXX) $(FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,$(SONAME),$(COMPAT_TGT) -o $(COMPAT_TGT) $(COMPAT_OBJ)
