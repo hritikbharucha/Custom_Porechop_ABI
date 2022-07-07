@@ -7,6 +7,27 @@ Trimming can then occur as usual, using all standard Porechop options.
 Porechop_ABI is not designed to infer barcoded sequences adapters, but will report several sequences if a mix of adapters is used.
 Demultiplexing should be done using standard Porechop commands or more appropriate tools.  
 
+# Table of Content
+* [Requirements](#requirements)
+   * [Porechop Reqirements](#porechop-requirements)
+   * [Python version](#python-version)
+   * [Networkx](#networkx)
+* [Installation](#installation)
+   * [Install from source](#install-from-source)
+   * [Build and run without installation](#build-and-run-without-installation)
+* [Quick usage examples](#quick-usage-examples)
+   * [Test Porechop_ABI](#test-porechop_abi)
+* [Usage](#usage)
+   * [Simple runs](#simple-runs)
+   * [Useful options](#useful-options)
+   * [Advanced settings](#advanced-settings)
+   * [Consensus options](#consensus-options)
+* [Config File](#config-file)
+   * [List of possible parameters](#list-of-possible-parameters)
+* [Contributors](#contributors)
+* [License](#license)
+
+
 ## Requirements 
 
 The requirement are almost the same as Porechop (Oct 2018 version). You will need an updated version of Python (>= 3.6) and also need to install the graph library [networkx](https://networkx.github.io/).
@@ -15,7 +36,8 @@ The requirement are almost the same as Porechop (Oct 2018 version). You will nee
 
 See Porechop [documentation](README_PORECHOP.md)
 
-### Python3: Version >= 3.6
+### Python Version
+Python version must be 3.6 or above.<br>
 
 With [X] being the version of python you want to install:
 
@@ -55,10 +77,10 @@ With [X] being the version of python you use.
 
 
 Installation is similar to Porechop installation.
-
 First, clone the repository using the recursive option.
-Then, just install as described in the Porechop [documentation](README_PORECHOP.md).  
+If you are familiar with standard Porechop, you can just install as described in the Porechop [documentation](README_PORECHOP.md).
 
+### Install from source
 Running the `setup.py` script will compile the C++ components of Porechop_ABI and install a `porechop` executable:
 
 ```bash
@@ -92,6 +114,24 @@ make release
 ./porechop-runner.py -h
 ```
 
+## Quick usage examples
+__Basic adapter inference and trimming:__<br>
+`porechop -abi -i input_reads.fastq -o output_reads.fastq`
+
+__Only display inferred adapters:__<br>
+`porechop -abi --guess_adapter_only -i input_reads.fastq.gz -o output_reads.fastq`
+`porechop -abi -go -i input_reads.fastq -v 0 -o output_reads.fastq.gz`
+
+
+__Building a stronger consensus using more core module runs:__<br>
+`porechop -abi -nr 20 -cr 30 -i input_reads.fastq.gz -o output_reads.fastq`
+
+### Test Porechop_ABI
+Two additionnal test files are provided to test Porechop_ABI<br>
+__Simulated data (with less core module runs than usual, discarding default database)__
+`porechop -abi -go -dd -nr 5 -cr 15 -i test/test_simulated_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
+__Real data (standard parameters, discarding default database)__
+`porechop -abi -go -dd -i test/test_realdata_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
 
 ## Usage
 
@@ -123,6 +163,13 @@ We also added several options to tune both the main porechop implementation and 
 ```
 Allow you to set a custom config file for the ab_initio phase (default file in Porechop folder)
 The config file come with it's own set of parameters check the "Config File" section for more details.
+
+```bash
+-tmp / --temp_dir [path_to_folder]
+```
+Path to a writable temporary directory, used to store count file and temporary fasta files.
+The provided directory will be created if it does not exists, if the path is writable.
+By default, Porechop_ABI creates a ./tmp/ folder in the working directory (where the command is launched).
 
 
 ```bash
