@@ -56,7 +56,7 @@ ifeq ($(PLATFORM), Darwin)
 SONAME	= -install_name
 OMP 	= 
 LRT 	= 
-lz      =
+LZ      = -lz
 else
 SONAME	= -soname
 OMP 	= -fopenmp
