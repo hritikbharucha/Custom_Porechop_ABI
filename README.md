@@ -129,9 +129,9 @@ __Building a stronger consensus using more core module runs:__<br>
 
 ### Test Porechop_ABI
 Two additionnal test files are provided to test Porechop_ABI<br>
-__Simulated data (with less core module runs than usual, discarding default database)__<\br>
-`porechop -abi -go -dd -nr 5 -cr 15 -i test/test_simulated_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
-__Real data (standard parameters, discarding default database)__<\br>
+__Simulated data (with less core module runs than usual, discarding default database)__<br>
+`porechop -abi -go -dd -nr 5 -cr 15 -i test/test_simulated_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`<br>
+__Real data (standard parameters, discarding default database)__<br>
 `porechop -abi -go -dd -i test/test_realdata_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
 
 ## Usage
@@ -314,7 +314,7 @@ The ab initio extension is developed by Quentin Bonenfant, Laurent Noé and Hél
 
 
 ## References
-If you want more details about the algorithm, internal working and performances of this tool, a preprint is available here:<\br>
+If you want more details about the algorithm, internal working and performances of this tool, a preprint is available here:<br>
 https://www.biorxiv.org/content/10.1101/2022.07.07.499093
 
 ## License
