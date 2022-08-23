@@ -1,5 +1,5 @@
 """
-Last modified 2022-07-07
+Last modified 2022-08-22
 Author: Quentin Bonenfant (quentin.bonenfant@gmail.com)
 This file is a modified argument parser from Porechop.
 
@@ -38,7 +38,7 @@ def read_counter(filename):
     @return the number of read that are  (probably) in the file.
     """
     if not os.path.isfile(filename):
-        sys.exit('Error: could not find ' + filename)
+        sys.exit('Error: Pre-parser could not find ' + filename)
     if get_compression_type(filename) == 'gz':
         open_func = gzip.open
     else:  # plain text
@@ -287,14 +287,20 @@ def get_arguments():
         print("Received:", args.input)
         sys.exit('Error: Input file not readable.')
 
+    # If we have a read file, and not a a folder, pre-process the file
+    # to find out how many reads are in there.
     # Counting the number of reads in the file.
     # Storing that in args, since it kind of is one (just not explicitly given)
-    if(args.verbosity > 1):
-        print(f"Fast count of the number of reads...")
-    args.nb_reads = read_counter(args.input)
-    if(args.verbosity > 1):
-        print(f"{args.nb_reads} sequences detected in read file.")
-
+    if(os.path.isfile(args.input)):
+        if(args.verbosity > 1):
+            print(f"Estimating the number of reads in input file...")
+        args.nb_reads = read_counter(args.input)
+        if(args.verbosity > 1):
+            print(f"{args.nb_reads} sequences detected in read file.")
+    # If we have a folder and ab-initio mode, stop here.
+    elif(os.path.isdir(args.input) and args.ab_initio):
+        sys.exit('Error: Ab-Initio can not process folders, ' +
+                 'please provide a single fastq/a file.')
 
     # Checking if at least one adapter is in the database
     if(args.discard_database):

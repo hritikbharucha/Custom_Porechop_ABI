@@ -7,7 +7,7 @@ https://github.com/bonsai-team
 This script evolved from the wrapper used to call the approx_counter
 algorithm, which end goal is to find adapter sequence k-mers.
 We are able to infer adapter sequence from the reads instead of using
-the adapter.py static database (unsupported since 2018) of native Porechop.
+the adapter.py static database (unmaintained since 2018) of native Porechop.
 In order to change default parameters for approx_counter, change the config
 file porchop/abinitio.conf or pass a custom config file based on the same
 syntax using -abc / --ab_initio_config
