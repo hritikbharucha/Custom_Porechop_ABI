@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Run 'python3 setup.py install' to install Porechop.
+Run 'python3 setup.py install' to install Porechop_ABI.
 """
 
-# Make sure this is being run with Python 3.4 or later.
+# Make sure this is being run with Python 3.6 or later.
 import sys
 if sys.version_info.major != 3 or sys.version_info.minor < 6:
     print('Error: you must execute setup.py using Python 3.6 or later')
@@ -64,14 +64,15 @@ if not importlib.util.find_spec("networkx"):
     printerr("/!\\networkx was not found/!\\")
     printerr("##############################")
     printerr("")
-    install_networkx()
+    sys.exit(1)
+    # install_networkx()
 
 
 from setuptools import setup
 from setuptools.command.install import install
 
 # Get the program version from another file.
-exec(open('porechop/version.py').read())
+exec(open('porechop_abi/version.py').read())
 
 with open('README.md', 'rb') as readme:
     LONG_DESCRIPTION = readme.read().decode()
@@ -101,7 +102,7 @@ class PorechopBuild(build):
             subprocess.call(make_cmd)
 
         self.execute(clean_cpp, [], 'Cleaning previous compilation: ' + ' '.join(clean_cmd))
-        self.execute(compile_cpp, [], 'Compiling Porechop: ' + ' '.join(make_cmd))
+        self.execute(compile_cpp, [], 'Compiling Porechop_ABI: ' + ' '.join(make_cmd))
 
 
 class PorechopInstall(install):
@@ -110,24 +111,37 @@ class PorechopInstall(install):
     """
 
     def run(self):
+        print("Moving binaries to", os.path.join(self.install_lib, 'porechop_abi'))
+
+        print("\tcpp_function.so")
         install.run(self)  # Run original install code
-        shutil.copyfile(os.path.join('porechop', 'cpp_functions.so'),
-                        os.path.join(self.install_lib, 'porechop', 'cpp_functions.so'))
+        shutil.copyfile(os.path.join('porechop_abi', 'cpp_functions.so'),
+                        os.path.join(self.install_lib, 'porechop_abi', 'cpp_functions.so'))
+
+        print("\tapprox_counter")
         # adding approx_counter  file
-        shutil.copyfile(os.path.join('porechop', 'approx_counter'),
-                        os.path.join(self.install_lib, 'porechop', 'approx_counter'))
+        shutil.copyfile(os.path.join('porechop_abi', 'approx_counter'),
+                        os.path.join(self.install_lib, 'porechop_abi', 'approx_counter'))
+        # Changing permissions
+        print("\t\tchanging permission to 755")
+        os.chmod(os.path.join(self.install_lib, 'porechop_abi', 'approx_counter'), 0o755)
 
+        print("\tcompatibility.so")
         # adding  compatibility shared library
-        shutil.copyfile(os.path.join('porechop', 'compatibility.so'),
-                        os.path.join(self.install_lib, 'porechop', 'compatibility.so'))
+        shutil.copyfile(os.path.join('porechop_abi', 'compatibility.so'),
+                        os.path.join(self.install_lib, 'porechop_abi', 'compatibility.so'))
 
+        print("\tmsa_consensus")
         # adding  msa consensus exec
-        shutil.copyfile(os.path.join('porechop', 'msa_consensus'),
-                        os.path.join(self.install_lib, 'porechop', 'msa_consensus'))
+        shutil.copyfile(os.path.join('porechop_abi', 'msa_consensus'),
+                        os.path.join(self.install_lib, 'porechop_abi', 'msa_consensus'))
+        # Changing permissions
+        print("\t\tchanging permission to 755")
+        os.chmod(os.path.join(self.install_lib, 'porechop_abi', 'msa_consensus'), 0o755)
 
         # moving config file
-        shutil.copyfile(os.path.join('porechop', 'ab_initio.config'),
-                        os.path.join(self.install_lib, 'porechop', 'ab_initio.config'))
+        shutil.copyfile(os.path.join('porechop_abi', 'ab_initio.config'),
+                        os.path.join(self.install_lib, 'porechop_abi', 'ab_initio.config'))
 
 
 class PorechopClean(Command):
@@ -172,16 +186,19 @@ class PorechopClean(Command):
             os.remove(delete_file)
 
 
-setup(name='porechop',
+setup(name='Porechop_ABI',
       version=__version__,
-      description='Porechop',
+      description='Porechop_ABI',
       long_description=LONG_DESCRIPTION,
-      url='http://github.com/rrwick/porechop',
-      author='Ryan Wick',
-      author_email='rrwick@gmail.com',
+      url='https://github.com/bonsai-team/Porechop_ABI',
+      author='Quentin Bonenfant',
+      author_email='quentin.bonenfant@gmail.com',
       license='GPL',
-      packages=['porechop'],
-      entry_points={"console_scripts": ['porechop = porechop.porechop:main']},
+      packages=['porechop_abi'],
+      package_data={'porechop_abi': ['porechop_abi/approx_counter',
+                                     'porechop_abi/msa_consensus']},
+      entry_points={"console_scripts":
+                    ['porechop_abi = porechop_abi.porechop_abi:main']},
       zip_safe=False,
       cmdclass={'build': PorechopBuild,
                 'install': PorechopInstall,

@@ -1,5 +1,5 @@
 """
-Copyright 2017 Ryan Wick (rrwick@gmail.com)
+Copyright 2017-2022 Ryan Wick (rrwick@gmail.com)
 https://github.com/rrwick/Porechop
 
 This module contains some tests for Porechop. To run them, execute `python3 -m unittest` from the
@@ -54,7 +54,7 @@ class TestAlbacoreDirectory(unittest.TestCase):
         When just the barcode01 reads are given as a single file, Porechop doesn't treat it as
         Albacore output.
         """
-        out, _ = self.run_command('porechop -i INPUT -b BARCODE_DIR',
+        out, _ = self.run_command('porechop -i INPUT -b BARCODE_DIR ',
                                   'test_albacore_directory/workspace/barcode01/' +
                                   'fastq_runid_e1df3d311cc267665db81df4aa863d073b0494ae_0.fastq')
 
@@ -81,7 +81,7 @@ class TestAlbacoreDirectory(unittest.TestCase):
         When just the barcode02 reads are given as a single file, Porechop doesn't treat it as
         Albacore output.
         """
-        out, _ = self.run_command('porechop -i INPUT -b BARCODE_DIR',
+        out, _ = self.run_command('porechop -i INPUT -b BARCODE_DIR ',
                                   'test_albacore_directory/workspace/barcode02/' +
                                   'fastq_runid_e1df3d311cc267665db81df4aa863d073b0494ae_0.fastq')
 
@@ -106,7 +106,7 @@ class TestAlbacoreDirectory(unittest.TestCase):
         When just the barcode03 reads are given as a single file, Porechop doesn't treat it as
         Albacore output.
         """
-        out, _ = self.run_command('porechop -i INPUT -b BARCODE_DIR',
+        out, _ = self.run_command('porechop -i INPUT -b BARCODE_DIR ',
                                   'test_albacore_directory/workspace/barcode03/' +
                                   'fastq_runid_e1df3d311cc267665db81df4aa863d073b0494ae_0.fastq')
 
@@ -132,7 +132,7 @@ class TestAlbacoreDirectory(unittest.TestCase):
         When just the unclassified reads are given as a single file, Porechop doesn't treat it as
         Albacore output.
         """
-        out, _ = self.run_command('porechop -i INPUT -b BARCODE_DIR',
+        out, _ = self.run_command('porechop -i INPUT -b BARCODE_DIR ',
                                   'test_albacore_directory/workspace/unclassified/' +
                                   'fastq_runid_e1df3d311cc267665db81df4aa863d073b0494ae_0.fastq')
 
@@ -159,7 +159,8 @@ class TestAlbacoreDirectory(unittest.TestCase):
         When the whole directory is given as input, it's treated as an Albacore directory and reads
         where Porechop and Albacore disagree are put into 'none'.
         """
-        out, _ = self.run_command('porechop -i INPUT -b BARCODE_DIR', 'test_albacore_directory')
+        out, _ = self.run_command('porechop -i INPUT -b BARCODE_DIR ',
+                                  'test_albacore_directory')
 
         bc01_trimmed_reads = self.load_trimmed_reads('BC01.fastq')
         bc02_trimmed_reads = self.load_trimmed_reads('BC02.fastq')

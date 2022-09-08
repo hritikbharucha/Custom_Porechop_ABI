@@ -16,30 +16,30 @@ CXX         ?= g++
 CXXFLAGS    ?= -Wall -Wextra -pedantic -mtune=native
 
 # These flags are required for the build to work.
-FLAGS        = -std=c++14 -Iporechop/include -fPIC
+FLAGS        = -std=c++14 -Iporechop_abi/include -fPIC
 LDFLAGS      = -shared
 
 # Different debug/optimisation levels for debug/release builds.
 DEBUGFLAGS   = -DSEQAN_ENABLE_DEBUG=1 -g
 RELEASEFLAGS = -O3 -D NDEBUG
 
-TARGET       = porechop/cpp_functions.so
+TARGET       = porechop_abi/cpp_functions.so
 SHELL        = /bin/sh
 # modified SOURCES / HEADER to only search cpp/h file in src folder
-SOURCES      = $(shell find porechop/src -name "*.cpp")
-HEADERS      = $(shell find porechop/src -name "*.h")
+SOURCES      = $(shell find porechop_abi/src -name "*.cpp")
+HEADERS      = $(shell find porechop_abi/src -name "*.h")
 OBJECTS      = $(SOURCES:.cpp=.o)
 
 
 # Adapt finder (k-mer approximate counter)
-APPROXCOUNTER_SRC  = approx_counter/approx_counter.cpp
-APPROXCOUNTER_TGT  = porechop/approx_counter
+APPROXCOUNTER_TGT  = porechop_abi/approx_counter
+APPROXCOUNTER_SRC  = porechop_abi/ab_initio_src/approx_counter.cpp
 APPROXCOUNTER_FLAG = -DSEQAN_HAS_ZLIB=1
 
 # Compatibility flag library
-COMPAT_TGT = porechop/compatibility.so
-COMPAT_SRC = porechop/ab_initio_src/compatibility.cpp
-COMPAT_HDR = porechop/ab_initio_src/compatibility.h
+COMPAT_TGT = porechop_abi/compatibility.so
+COMPAT_SRC = porechop_abi/ab_initio_src/compatibility.cpp
+COMPAT_HDR = porechop_abi/ab_initio_src/compatibility.h
 COMPAT_OBJ = $(COMPAT_SRC:.cpp=.o)
 
 # Adding Compatibility library header to headers list
@@ -47,8 +47,8 @@ HEADERS+=$(COMPAT_HDR)
 
 
 # MSA consensus
-MSA_TGT = porechop/msa_consensus
-MSA_SRC = porechop/ab_initio_src/msa_consensus.cpp
+MSA_TGT = porechop_abi/msa_consensus
+MSA_SRC = porechop_abi/ab_initio_src/msa_consensus.cpp
 
 # Linux needs '-soname' while Mac needs '-install_name'
 PLATFORM     = $(shell uname)
