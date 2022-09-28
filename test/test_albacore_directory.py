@@ -18,7 +18,7 @@ import unittest
 import os
 import shutil
 import subprocess
-import porechop.misc
+import porechop_abi.misc
 
 
 class TestAlbacoreDirectory(unittest.TestCase):
@@ -42,7 +42,7 @@ class TestAlbacoreDirectory(unittest.TestCase):
 
     def load_trimmed_reads(self, filename):
         full_filepath = os.path.join(self.output_dir, filename)
-        trimmed_reads, read_type = porechop.misc.load_fasta_or_fastq(full_filepath)
+        trimmed_reads, read_type = porechop_abi.misc.load_fasta_or_fastq(full_filepath)
         if read_type == 'FASTA':
             trimmed_reads = [(x[2], x[1], '') for x in trimmed_reads]
         else:  # FASTQ

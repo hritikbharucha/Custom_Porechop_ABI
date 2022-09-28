@@ -1,5 +1,5 @@
 """
-Copyright 2017 Ryan Wick (rrwick@gmail.com)
+Copyright 2017-2022 Ryan Wick (rrwick@gmail.com)
 https://github.com/rrwick/Porechop
 
 This module contains some tests for Porechop. To run them, execute `python3 -m unittest` from the
@@ -18,13 +18,13 @@ import unittest
 import os
 import subprocess
 import shutil
-import porechop.misc
+import porechop_abi.misc
 
 
 def get_read_type(filename):
-    _, read_type = porechop.misc.load_fasta_or_fastq(filename)
+    _, read_type = porechop_abi.misc.load_fasta_or_fastq(filename)
     read_type = read_type.lower()
-    compression_type = porechop.misc.get_compression_type(filename)
+    compression_type = porechop_abi.misc.get_compression_type(filename)
     if compression_type == 'plain':
         return read_type
     elif compression_type == 'gz':

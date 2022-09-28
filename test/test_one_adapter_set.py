@@ -1,5 +1,5 @@
 """
-Copyright 2017 Ryan Wick (rrwick@gmail.com)
+Copyright 2017-2022 Ryan Wick (rrwick@gmail.com)
 https://github.com/rrwick/Porechop
 
 This module contains some tests for Porechop. To run them, execute `python3 -m unittest` from the
@@ -17,7 +17,7 @@ not, see <http://www.gnu.org/licenses/>.
 import unittest
 import os
 import subprocess
-import porechop.misc
+import porechop_abi.misc
 
 
 class TestOneAdapterSet(unittest.TestCase):
@@ -79,7 +79,7 @@ class TestOneAdapterSet(unittest.TestCase):
         self.assertTrue('@3\n' in out)
 
     def load_trimmed_reads(self):
-        trimmed_reads, read_type = porechop.misc.load_fasta_or_fastq(self.output_file)
+        trimmed_reads, read_type = porechop_abi.misc.load_fasta_or_fastq(self.output_file)
         if read_type == 'FASTA':
             trimmed_reads = [(x[2], x[1], '') for x in trimmed_reads]
         else:  # FASTQ
@@ -224,37 +224,37 @@ class TestOneAdapterSet(unittest.TestCase):
         self.run_command('porechop -i INPUT -o OUTPUT.fastq')
         read_type = self.check_trimmed_reads()
         self.assertEqual(read_type, 'FASTQ')
-        self.assertEqual(porechop.misc.get_compression_type(self.output_file), 'plain')
+        self.assertEqual(porechop_abi.misc.get_compression_type(self.output_file), 'plain')
 
     def test_results_gz_fastq(self):
         self.run_command('porechop -i INPUT -o OUTPUT.fastq.gz')
         read_type = self.check_trimmed_reads()
         self.assertEqual(read_type, 'FASTQ')
-        self.assertEqual(porechop.misc.get_compression_type(self.output_file), 'gz')
+        self.assertEqual(porechop_abi.misc.get_compression_type(self.output_file), 'gz')
 
     def test_results_piped_fastq(self):
         self.run_command('porechop -i INPUT > OUTPUT.fastq')
         read_type = self.check_trimmed_reads()
         self.assertEqual(read_type, 'FASTQ')
-        self.assertEqual(porechop.misc.get_compression_type(self.output_file), 'plain')
+        self.assertEqual(porechop_abi.misc.get_compression_type(self.output_file), 'plain')
 
     def test_results_normal_fasta(self):
         self.run_command('porechop -i INPUT -o OUTPUT.fasta')
         read_type = self.check_trimmed_reads()
         self.assertEqual(read_type, 'FASTA')
-        self.assertEqual(porechop.misc.get_compression_type(self.output_file), 'plain')
+        self.assertEqual(porechop_abi.misc.get_compression_type(self.output_file), 'plain')
 
     def test_results_gz_fasta(self):
         self.run_command('porechop -i INPUT -o OUTPUT.fasta.gz')
         read_type = self.check_trimmed_reads()
         self.assertEqual(read_type, 'FASTA')
-        self.assertEqual(porechop.misc.get_compression_type(self.output_file), 'gz')
+        self.assertEqual(porechop_abi.misc.get_compression_type(self.output_file), 'gz')
 
     def test_results_piped_fasta(self):
         self.run_command('porechop -i INPUT --format fasta > OUTPUT.fasta')
         read_type = self.check_trimmed_reads()
         self.assertEqual(read_type, 'FASTA')
-        self.assertEqual(porechop.misc.get_compression_type(self.output_file), 'plain')
+        self.assertEqual(porechop_abi.misc.get_compression_type(self.output_file), 'plain')
 
     def test_single_threaded(self):
         self.run_command('porechop -i INPUT -o OUTPUT.fastq --threads 1')
