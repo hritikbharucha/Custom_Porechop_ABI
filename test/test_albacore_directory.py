@@ -26,7 +26,7 @@ class TestAlbacoreDirectory(unittest.TestCase):
     Tests barcode demultiplexing from an Albacore output directory.
     """
     def run_command(self, command, input_path):
-        runner_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'porechop-runner.py')
+        runner_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'porechop-abi-runner.py')
         input_path = os.path.join(os.path.dirname(__file__), input_path)
         command = command.replace('porechop', runner_path)
         command = command.replace('INPUT', input_path)

@@ -25,7 +25,7 @@ class TestTwoAdapterSets(unittest.TestCase):
     This test set contains a combination of two adapter sets: SQK-MAP006 and SQK-NSK007
     """
     def run_command(self, command):
-        runner_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'porechop-runner.py')
+        runner_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'porechop-abi-runner.py')
         input_path = os.path.join(os.path.dirname(__file__), 'test_two_adapter_sets.fastq')
         command = command.replace('porechop', runner_path)
         command = command.replace('INPUT', input_path)

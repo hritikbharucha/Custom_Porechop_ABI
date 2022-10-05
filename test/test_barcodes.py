@@ -26,7 +26,7 @@ class TestBarcodes(unittest.TestCase):
     Tests barcode demultiplexing.
     """
     def run_command(self, command):
-        runner_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'porechop-runner.py')
+        runner_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'porechop-abi-runner.py')
         input_path = os.path.join(os.path.dirname(__file__), 'test_barcodes.fastq')
         command = command.replace('porechop', runner_path)
         command = command.replace('INPUT', input_path)
