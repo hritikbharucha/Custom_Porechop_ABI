@@ -63,7 +63,7 @@ using EnumerableThreadLocalIterSpec = Tag<EnumerableThreadLocalIterSpec_>;
  */
 struct SimpleThreadLocalManager
 {
-    std::shared_timed_mutex  _mutex{};        // TODO(rrahn): Replace by shared_mutex when c++17 is available.
+    std::shared_mutex  _mutex{};        // TODO(rrahn): Replace by shared_mutex when c++17 is available.
 
     /*!
      * @fn SimpleThreadLocalManager::local
