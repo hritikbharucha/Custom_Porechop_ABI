@@ -19,6 +19,7 @@ import os
 import subprocess
 import shutil
 import porechop_abi.misc
+import sys
 
 
 def get_read_type(filename):
@@ -145,7 +146,7 @@ class TestOutputFormat(unittest.TestCase):
 class TestOutputFormatBarcodes(unittest.TestCase):
 
     def run_command(self, command, input_filename):
-        runner_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'porechop-runner.py')
+        runner_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'porechop-abi-runner.py')
         input_path = os.path.join(os.path.dirname(__file__), input_filename)
         command = command.replace('porechop', runner_path)
         command = command.replace('IN', input_path)

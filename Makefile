@@ -16,7 +16,7 @@ CXX         ?= g++
 CXXFLAGS    ?= -Wall -Wextra -pedantic -mtune=native
 
 # These flags are required for the build to work.
-FLAGS        = -std=c++14 -Iporechop_abi/include -fPIC
+FLAGS        = -std=c++17 -Iporechop_abi/include -fPIC
 LDFLAGS      = -shared
 
 # Different debug/optimisation levels for debug/release builds.
