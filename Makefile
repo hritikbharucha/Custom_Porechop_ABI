@@ -58,6 +58,8 @@ SONAME	= -install_name
 OMP 	= 
 LRT 	= 
 LZ      = -lz
+FLAGS   += -D_LIBCPP_DISABLE_AVAILABILITY
+
 else
 SONAME	= -soname
 OMP 	= -fopenmp
