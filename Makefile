@@ -17,7 +17,8 @@ CXXFLAGS    ?= -Wall -Wextra -pedantic -mtune=native
 
 # These flags are required for the build to work.
 FLAGS        = -std=c++17 -Iporechop_abi/include -fPIC
-LDFLAGS     += -shared
+SHARED       = -shared  # trying to fix LDFLAG issues by splitting shared / not shared
+LDFLAGS     ?= -Lporechop_abi/include
 
 # Different debug/optimisation levels for debug/release builds.
 DEBUGFLAGS   = -DSEQAN_ENABLE_DEBUG=1 -g
@@ -77,16 +78,16 @@ debug: all
 
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $(FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,$(SONAME),$(TARGET) -o $(TARGET) $(OBJECTS)
+	$(CXX) $(FLAGS) $(CXXFLAGS) $(SHARED) $(LDFLAGS) -Wl,$(SONAME),$(TARGET) -o $(TARGET) $(OBJECTS)
 
 $(APPROXCOUNTER_TGT):
-	$(CXX) $(FLAGS) $(APPROXCOUNTER_FLAG) $(OMP) $(CXXFLAGS)  $(APPROXCOUNTER_SRC) $(LRT) $(LZ) -o $(APPROXCOUNTER_TGT)
+	$(CXX) $(FLAGS) $(APPROXCOUNTER_FLAG) $(OMP) $(CXXFLAGS) $(LDFLAGS) $(APPROXCOUNTER_SRC) $(LRT) $(LZ) -o $(APPROXCOUNTER_TGT)
 
 $(COMPAT_TGT): $(COMPAT_OBJ)
-	$(CXX) $(FLAGS) $(CXXFLAGS) $(LDFLAGS) -Wl,$(SONAME),$(COMPAT_TGT) -o $(COMPAT_TGT) $(COMPAT_OBJ)
+	$(CXX) $(FLAGS) $(CXXFLAGS) $(SHARED) $(LDFLAGS) -Wl,$(SONAME),$(COMPAT_TGT) -o $(COMPAT_TGT) $(COMPAT_OBJ)
 
 $(MSA_TGT):
-	$(CXX) $(FLAGS) $(OMP) $(CXXFLAGS) $(MSA_SRC) $(LRT) -o $(MSA_TGT)
+	$(CXX) $(FLAGS) $(OMP) $(CXXFLAGS) $(LDFLAGS) $(MSA_SRC) $(LRT) -o $(MSA_TGT)
 	
 clean:
 	$(RM) $(OBJECTS) $(COMPAT_OBJ)
