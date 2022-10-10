@@ -145,7 +145,6 @@ trimming the reads.
 
 For all other usages and description of the output files, you can refer to the Porechop [documentation](README_PORECHOP.md). 
 
-
 ### Useful options 
 We also added several options to tune both the main porechop implementation and the ab-initio step to your needs.
   
