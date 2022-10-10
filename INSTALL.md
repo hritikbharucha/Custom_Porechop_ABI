@@ -8,11 +8,11 @@ Except for conda installation, all requirements described in [documentation](REA
 
 
 # Table of Content
-* [Install with Conda](#install_with_conda)
-* [Fetching source code](#fetching_source_code)
-* [Install with PIP](#install_with_pip)
-* [Install from sources](#install_from_sources)
-* [Build and run without installation](#build_and_run_without_installation)
+* [Install with Conda](#install-with-conda)
+* [Fetching source code](#fetching-source-code)
+* [Install with PIP](#install-with-pip)
+* [Install from sources](#install-from-sources)
+* [Build and run without installation](#build-and-run-without-installation)
 * [Troubleshooting](#troubleshooting)
 
 

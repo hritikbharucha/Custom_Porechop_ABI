@@ -9,9 +9,9 @@ Demultiplexing should be done using standard Porechop commands or more appropria
 
 # Table of Content
 * [Requirements](#requirements)
-   * [Operating System version](#operating_system_version)
-   * [SeqAn 2.4 and zlib 1.2](#seqan_2.4_and_zlib_1.2)
-   * [Compiler and C++17](compiler_and_c++17)
+   * [Operating System version](#operating-system-version)
+   * [SeqAn 2.4 and zlib 1.2](#seqan-2.4-and-zlib-1.2)
+   * [Compiler and C++17](compiler-and-c++17)
    * [Python version](#python-version)
    * [Networkx](#networkx)
 * [Installation](#installation)
