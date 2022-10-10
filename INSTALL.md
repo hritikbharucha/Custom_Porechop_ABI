@@ -20,7 +20,7 @@ Except for conda installation, all requirements described in [documentation](REA
 [Conda](https://docs.conda.io/en/latest/) is a cross platform package / environment management system.
 Porechop_ABI was added as a package to the [bioconda](https://bioconda.github.io/) channel to make the installation easier.
 
-With a fresh environment, you may use either the Anaconda GUI, or the following command line:
+With a fresh environment, you may install Porechop_ABI using either the Anaconda GUI, or the following command lines:
 
 ```bash
 conda create -n my_env
@@ -59,7 +59,7 @@ Depending on your permissions, you can install porechop_abi systemwide (root / s
 
 After cloning the repository:
 
-* Systemwide install
+* System wide install
 ```bash
 python3.[x] setup.py install
 porechop_abi -h

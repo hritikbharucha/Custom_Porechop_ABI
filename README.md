@@ -10,8 +10,8 @@ Demultiplexing should be done using standard Porechop commands or more appropria
 # Table of Content
 * [Requirements](#requirements)
    * [Operating System version](#operating-system-version)
-   * [SeqAn 2.4 and zlib 1.2](#seqan-2.4-and-zlib-1.2)
-   * [Compiler and C++17](compiler-and-c++17)
+   * [SeqAn 2.4 and zlib 1.2](#seqan-24-and-zlib-12)
+   * [Compiler and C++17](compiler-and-c17)
    * [Python version](#python-version)
    * [Networkx](#networkx)
 * [Installation](#installation)
@@ -116,10 +116,10 @@ __Building a stronger consensus using more core module runs:__<br>
 
 ### Test Porechop_ABI
 Two additionnal test files are provided to test Porechop_ABI<br>
-Faster test: __Simulated data (with less core module runs than usual, discarding default database)__
-`porechop_abi -abi -go -dd -nr 5 -cr 15 -i test/test_simulated_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
-Slower test: __Real data (standard parameters, discarding default database)__
-`porechop_abi -abi -go -dd -i test/test_realdata_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
+Faster test: __Simulated data (with less core module runs than usual, discarding default database)__<br>
+`porechop_abi -abi -go -dd -nr 5 -cr 15 -i test/test_simulated_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`<br>
+Slower test: __Real data (standard parameters, discarding default database)__<br>
+`porechop_abi -abi -go -dd -i test/test_realdata_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`<br>
 
 
 [//]: # (TODO: Add expected results for P_ABI tests.)
