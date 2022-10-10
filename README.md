@@ -9,12 +9,12 @@ Demultiplexing should be done using standard Porechop commands or more appropria
 
 # Table of Content
 * [Requirements](#requirements)
-   * [Porechop Reqirements](#porechop-requirements)
+   * [Operating System version](#operating_system_version)
+   * [SeqAn 2.4 and zlib 1.2](#seqan_2.4_and_zlib_1.2)
+   * [Compiler and C++17](compiler_and_c++17)
    * [Python version](#python-version)
    * [Networkx](#networkx)
 * [Installation](#installation)
-   * [Install from source](#install-from-source)
-   * [Build and run without installation](#build-and-run-without-installation)
 * [Quick usage examples](#quick-usage-examples)
    * [Test Porechop_ABI](#test-porechop_abi)
 * [Usage](#usage)
@@ -30,13 +30,35 @@ Demultiplexing should be done using standard Porechop commands or more appropria
 
 ## Requirements 
 
-The requirement are almost the same as Porechop (Oct 2018 version). You will need an updated version of Python (>= 3.6) and also need to install the graph library [networkx](https://networkx.github.io/).
+If you want to install Porechop_ABI, your system must satisfy some requirements.<br>
+In the case you chose to install using Conda, you can ignore this section (except the [OS](operating_system_version) requirement) and just use an up-to-date version of conda to install Porechop_ABI.
+Check the [installation](INSTALL.md) guide for more details.
 
-### Porechop requirements
 
-See Porechop [documentation](README_PORECHOP.md)
+### Operating System version
+* Mac OS >= 10.12
+* Linux, any version with compatible python and compiler requirements should work.
+
+
+### SeqAn 2.4 and zlib 1.2
+Seqan 2.4 and zlib 1.2 are both required library for Porechop_ABI to compile properly.
+Both are embeded in this repository, and should be automatically linked during compilation.<br>
+
+* Porechop_ABI updated the already embeded SeqAn library used by Porechop to version 2.4 (previously 2.3). This led to some changes in the requirements.
+* To match existing Porechop ability to open compressed files, zlib 1.2 was added to the `include` folder.
+
+
+### Compiler and C++17
+Because of ssome specific features integrated in SeqAn 2.4 and modifications required to keep mac OS support, your compiler must be able to work with C++17.
+
+* If you're using [GCC](https://gcc.gnu.org/), version 8 or later is required (check with `g++ --version`).
+* Recent versions of [Clang](http://clang.llvm.org/)(>=5.0.0) and [ICC](https://software.intel.com/en-us/c-compilers) should also work
+
+If for some reason you are interested in a C++14 compatible release, please open an issue here. Such install *should be* possible with additionnal work.
+
 
 ### Python Version
+Porechop is written mainly in Python3.
 Python version must be 3.6 or above.<br>
 
 With [X] being the version of python you want to install:
@@ -75,63 +97,32 @@ With [X] being the version of python you use.
 
 ## Installation 
 
+Porechop_ABI can be installed by several means. 
+The easiest way to install Porechop_ABI is to use the conda package management system and install it from the bioconda channel in a clean environment.
+All details about installation procedures are listed in the [installation](INSTALL.md) guide.<br>
 
-Installation is similar to Porechop installation.
-First, clone the repository using the recursive option.
-If you are familiar with standard Porechop, you can just install as described in the Porechop [documentation](README_PORECHOP.md).
-
-### Install from source
-Running the `setup.py` script will compile the C++ components of Porechop_ABI and install a `porechop` executable:
-
-```bash
-git clone --recursive https://github.com/bonsai-team/Porechop_ABI.git
-cd Porechop_ABI
-python3 setup.py install
-porechop -h
-```
-
-Notes:
-* If the install command (3rd line) complains about permissions, you may need to run it with `sudo`.
-* In case you get "could not find cpp_function.so" or similar error, you may need to add execution permission to compiled objects.
-`sudo chmod +x <your_install folder>/cpp_function.so`
-* To install just for your user: `python3 setup.py install --user`
-    * If you get a strange "can't combine user with prefix" error, read [this](http://stackoverflow.com/questions/4495120).
-* Install to a specific location: `python3 setup.py install --prefix=$HOME/.local`
-* Install with pip (local copy): `pip3 install path/to/Porechop_ABI`
-* If you'd like to specify which compiler to use, set the `CXX` variable: `export CXX=g++-6; python3 setup.py install`
-* Porechop includes `ez_setup.py` for users who don't have [setuptools](https://pypi.python.org/pypi/setuptools) installed, though that script is [deprecated](https://github.com/pypa/setuptools/issues/581). So if you run into any installation problems, make sure setuptools is installed on your computer: `pip3 install setuptools
-* If you had a previous installation of Porechop, it will try to replace it. Setting a different installation folder while already having Porechop installed may lead to conflict when calling `porechop` from command line.
-* For retro-compatibility issues, the name of the program remains `porechop`. Since no changes has been made to the internal functions of Porechop, transition to Porechop_ABI should be transparent.
-
-### Build and run without installation
-
-By simply running `make` in Porechop's directory, you can compile the C++ components but not install an executable. The program can then be executed by directly calling the `porechop-runner.py` script.
-
-```bash
-git clone --recursive https://github.com/bonsai-team/Porechop_ABI.git
-cd Porechop_ABI
-make release
-./porechop-runner.py -h
-```
 
 ## Quick usage examples
 __Basic adapter inference and trimming:__<br>
-`porechop -abi -i input_reads.fastq -o output_reads.fastq`
+`porechop_abi -abi -i input_reads.fastq -o output_reads.fastq`
 
 __Only display inferred adapters:__<br>
-`porechop -abi --guess_adapter_only -i input_reads.fastq.gz -o output_reads.fastq`
-`porechop -abi -go -i input_reads.fastq -v 0 -o output_reads.fastq.gz`
+`porechop_abi -abi --guess_adapter_only -i input_reads.fastq.gz -o output_reads.fastq`
+`porechop_abi -abi -go -i input_reads.fastq -v 0 -o output_reads.fastq.gz`
 
 
 __Building a stronger consensus using more core module runs:__<br>
-`porechop -abi -nr 20 -cr 30 -i input_reads.fastq.gz -o output_reads.fastq`
+`porechop_abi -abi -nr 20 -cr 30 -i input_reads.fastq.gz -o output_reads.fastq`
 
 ### Test Porechop_ABI
 Two additionnal test files are provided to test Porechop_ABI<br>
-__Simulated data (with less core module runs than usual, discarding default database)__
-`porechop -abi -go -dd -nr 5 -cr 15 -i test/test_simulated_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
-__Real data (standard parameters, discarding default database)__
-`porechop -abi -go -dd -i test/test_realdata_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
+Faster test: __Simulated data (with less core module runs than usual, discarding default database)__
+`porechop_abi -abi -go -dd -nr 5 -cr 15 -i test/test_simulated_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
+Slower test: __Real data (standard parameters, discarding default database)__
+`porechop_abi -abi -go -dd -i test/test_realdata_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
+
+
+[//]: # (TODO: Add expected results for P_ABI tests.)
 
 ## Usage
 
@@ -142,7 +133,7 @@ Porechop_abi offers several new options.
 --ab_initio / -abi
 ```
 
-This flag allows to first guess the adapters sequences from the reads, add the sequence to the list of Porechop adapters and then run Porechop as usual. It is compatible with all Porechop options, but behave poorly on on barcoded reads.
+This flag allows to first guess the adapters sequences from the reads, add the sequence to the list of Porechop adapters and then run Porechop as usual. It is compatible with all Porechop options, but behave poorly on on barcoded reads. Adapter sequence inferrence is not activated by default.
 
 
 ```bash
@@ -236,12 +227,12 @@ Some parameters can be adjusted from the command line.
 --multi_run / -mr  [int]
 ```   
 Number of putative adapters to reconstruct to ensure the inferred adapters sequences are stable.
-Each count file is exported separately, and can be reviewed if needed. (default: 10, set to 1 for single run mode)
+Each count file is exported separately, and can be reviewed if needed. (default: 10, set to 1 for single sample mode)
 
 ```bash
 --consensus_run / -cr [int]
 ```
-If using multi-run option above 1, set the number of additional run performed if no stable consensus is immediatly found.
+If using multi-run option above 1, set the number of additional sample performed if no stable consensus is immediatly found.
 All inferred adapter sequences are then clustered by similarity and consensus are generated for each cluster.
 (default: 20)
   
@@ -261,7 +252,7 @@ Default is 10% (3 sequence over 30). You can set it to 0 to keep all consensus.
 ```bash
 --best_of_x / -box [int]
 ```
-Only select the best x consensus sequences from all consensus found. (default: 0)
+Only select the best x consensus sequences from all consensus found. (default: 0, reports all consensus)
 
 
 
@@ -275,7 +266,7 @@ In the case you still want to use custom options, it is recommanded to pass a co
 
 
 ```bash
-Porechop --ab_initio_config YOUR_CONFIG.config ...
+porechop_abi --ab_initio_config YOUR_CONFIG.config ...
 ```
 ### List of possible parameters:
 ```
@@ -296,7 +287,7 @@ Porechop --ab_initio_config YOUR_CONFIG.config ...
   v           : Verbosity level (0: minimal output, 1: normal, 2: debug).
   nb_thread   : Number of threads used for the approximate counting.
   skip_end    : Do not process end adapters. (mostly for debug)
-  nb_of_runs  : Number of run to perform and export at once.
+  nb_of_runs  : Number of time the sampling and count is performed. (Default: 10)
 ```
 
 **Notes:**
