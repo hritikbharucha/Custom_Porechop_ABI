@@ -129,11 +129,11 @@ Two read  files are provided to test Porechop_ABI.
 
 __Faster test:__ Simulated data (with reduced sampling, discarding default database) 
 
-`porechop_abi -abi -go -dd -nr 5 -cr 15 -i test/test_simulated_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
+`porechop_abi -abi -go -ddb -nr 5 -cr 15 -i test/test_simulated_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
 
 __Slower test:__ Real data (with standard parameters, discarding default database) 
 
-`porechop_abi -abi -go -dd -i test/test_realdata_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
+`porechop_abi -abi -go -ddb -i test/test_realdata_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`
 
 [//]: # (TODO: Add expected results for P_ABI tests.)
 
