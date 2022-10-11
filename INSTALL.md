@@ -4,7 +4,7 @@ Porechop_ABI can be installed using several methods, that can be separated in tw
 * Using package managers such as Conda or Pip.
 * Installing from sources using scripts or make.
 
-Except for conda installation, all requirements described in [documentation](README.md) must be satisfied before install.
+Except for conda installation, all requirements described in [README](README.md) must be satisfied before install.
 
 
 # Table of Content
@@ -20,21 +20,35 @@ Except for conda installation, all requirements described in [documentation](REA
 [Conda](https://docs.conda.io/en/latest/) is a cross platform package / environment management system.
 Porechop_ABI was added as a package to the [bioconda](https://bioconda.github.io/) channel to make the installation easier.
 
-With a fresh environment, you may install Porechop_ABI using either the Anaconda GUI, or the following command lines:
+If you do not have conda installed, you can get started [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html).
+
+With Miniconda3 or Anaconda  installed, it is recommended to keep conda up to date.
+
+```bash
+conda update conda"
+```
+
+The different package required to install Porechop_ABI are scattered between the conda-forge and bioconda channels.
+You will need to add them both to your available channels:
+```bash
+conda config --add channels conda-forge
+conda config --add channels bioconda
+```
+An alternative is to specify the channels during installation with *-c* flag after the package name.
+
+With a fresh environment, install Porechop_ABI using either the Anaconda GUI, or the following command lines:
 
 ```bash
 conda create -n my_env
 conda activate my_env
-conda install porechop_abi -c bioconda
+conda install porechop_abi
 porechop_abi -h
 ```
-
-See Conda [command list](https://docs.conda.io/projects/conda/en/latest/commands.html) for information about managing conda packages and environments.
 
 
 ## Fetching source code
 
-All the following methods require you either download and unzip this repository, or simply clone it:
+All the following methods require you to either download and unzip this repository, or simply clone it:
 
 ```bash
 git clone https://github.com/bonsai-team/Porechop_ABI.git
