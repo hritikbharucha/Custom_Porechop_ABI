@@ -148,7 +148,7 @@ Poor consensus warning: This warning is activated when Porechop_ABI finds more t
 
 
 ## Advanced usage
-Porechop_ABI allows to tune parameters, either for the ABI phase or the trmming pahse. We decribe hereafter the options that are specific to the ABI module (ab initio phase). Some of them are described in the config file, and some of them in the command-line.
+Porechop_ABI allows to tune parameters, either for the ABI phase (ab initio) or the read trimming phase. We decribe hereafter the options that are specific to the ABI phase. Some of them are accessible in the config file, and some of them in the command-line.
 For all usages and descriptions regarding the read trimming phase, you can refer to the Porechop [documentation](README_PORECHOP.md).
 
 ### General-purpose options 
