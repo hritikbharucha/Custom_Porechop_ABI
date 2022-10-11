@@ -1,12 +1,12 @@
 # Porechop_ABI
 
-Porechop_ABI (*ab initio*) is an extension of Porechop whose purpose is to find and process adapter sequences in  ONT reads. 
+Porechop_ABI (*ab initio*) is an extension of Porechop whose purpose is to find and process adapter sequences in ONT reads. 
 
 The difference with the initial version of Porechop is that Porechop_ABI does not use any external knowledge or database.  Adapter sequences are discovered directly from the reads using approximate k-mers counting and assembly. These sequences can either be automatically added to the adapter database of Porechop for the current run, or just displayed.  Trimming can then occur as usual, using all standard Porechop options.
 
-The software is able to report several distinct sequences if a mix of adapters is used. It can also be used to check whether a dataset has already been trimmed out or not, or to find leftover adapters in datasets that have been previously processed with Guppy
+The software is able to report a combination of distinct sequences if a mix of adapters is used. It can also be used to check whether a dataset has already been trimmed out or not, or to find leftover adapters in datasets that have been previously processed with Guppy.
 
-Note that Porechop_ABI is not designed to infer barcoded sequences adapters.
+Note that Porechop_ABI is not designed to handle barcoded sequences adapters.
 Demultiplexing should be done using standard Porechop commands or more appropriate tools.  
 
 # Table of Content
@@ -17,13 +17,10 @@ Demultiplexing should be done using standard Porechop commands or more appropria
    * [Python version](#python-version)
    * [Networkx](#networkx)
 * [Installation](#installation)
-* [Quick usage](#quick-usage-examples)
-   * [Test Porechop_ABI](#test-porechop_abi)
-* [Usage](#usage)
-   * [Simple runs](#simple-runs)
-   * [Useful options](#useful-options)
-   * [Advanced settings](#advanced-settings)
-   * [Consensus options](#consensus-options)
+* [Quick usage](#quick-usage)
+* [Advanced usage](#advanced-usage)
+   * [General purpose options](#general-purpose-options)
+   * [Algorithm options](#algorithm-options)
 * [Config File](#config-file)
    * [List of possible parameters](#list-of-possible-parameters)
 * [Contributors](#contributors)
@@ -38,8 +35,9 @@ Check the [installation](INSTALL.md) guide for more details.
 
 
 ### Operating System version
-* 
-*Linux, any version with compatible python and compiler requirements should work. Mac OS >= 10.12
+ 
+* Linux, any version with compatible python and compiler requirements should work. 
+* Mac OS >= 10.12
 
 
 ### SeqAn 2.4 and zlib 1.2
@@ -109,16 +107,12 @@ All details about installation procedures are listed in the [installation](INSTA
 
 ### Adapter inference and trimming
 
-`porechop_abi --ab_initio -i input_reads.fastq -o output_reads.fastq`
+`porechop_abi --ab_initio -i input_reads.fastq -o output_reads.fastq` <br>
 `porechop_abi -abi -i input_reads.fastq -o output_reads.fastq`
 
 The input_reads.fastq file shoud contain the set of raw ONT reads. 
-The resulting trimmed reads are saved in  output_reads.fastq file.
-
-
-This command-line with the -abi flag allows to first guess the adapter sequences from the reads, add the sequence to the list of Porechop adapters ( (adapters.py file) and then run Porechop as usual. It is compatible with all Porechop options for trimming. <!--- , but behave poorly on barcoded reads. !--->
-
-<!---Adapter sequence inferrence is not activated by default.!--->
+This command-line with the -abi flag allows to first guess the adapter sequences from the reads, add the sequence to the list of Porechop adapters  (adapters.py file) and then run Porechop as usual. The 
+ It is compatible with all Porechop options for trimming. resulting trimmed reads are saved in  output_reads.fastq file.
 
 
 ### Adapter inference only 
@@ -131,10 +125,12 @@ trimming the reads.
 
 ### Test files
 
-Two read   files are provided to test Porechop_ABI<br>
-Faster test: __Simulated data (with less core module runs than usual, discarding default database)__<br>
+Two read  files are provided to test Porechop_ABI<br>
+
+__Faster test:__ Simulated data (with reduced sampling, discarding default database) <br>
 `porechop_abi -abi -go -dd -nr 5 -cr 15 -i test/test_simulated_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`<br>
-Slower test: __Real data (standard parameters, discarding default database)__<br>
+
+__Slower test:__ Real data (with standard parameters, discarding default database) <br>
 `porechop_abi -abi -go -dd -i test/test_realdata_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`<br>
 
 [//]: # (TODO: Add expected results for P_ABI tests.)
@@ -148,13 +144,9 @@ Low frequency warning: This warning means that the k-mers used to build the adap
 Poor consensus warning: This warning is activated when Porechop_ABI finds more than two distinct start (or end) adapters and when each of them is found in less than 30% reads. 
 
 
-<!---
-__Building a stronger consensus using more core module runs:__<br>
-`porechop_abi -abi -nr 20 -cr 30 -i input_reads.fastq.gz -o output_reads.fastq`
-!--->
 
 
-## Advance usage
+## Advanced usage
 
 
 For all usages and description of the output files regarding read trimming, you can refer to the Porechop [documentation](README_PORECHOP.md). We decribe hereafter the options that are specific to the ABI module (ab initio phase). Some of them are described in the config file, and some of them in the command-line.
@@ -212,20 +204,18 @@ In case you supply your own adapters, it can be useful (and faster) to ignore th
 This option was added for this situation, and require either ab initio (-abi) or a custom adapter (-cap) to be set. Default: False
 
 
-### k-mers, sampling and  assembly options
+### Algorithm options 
 
-The algorithm implemented in the ABI module depends on a series  of parameters. They all have default values that work well in practice.
+The algorithm implemented in the ABI module depends on a series of parameters concerning k-mer selection, sampling, and assembly. They all have default values that work well in practice.
 
-Number of reads in each sample. By default, the value is 40,000.
-Length of start and end regions selected for each read. By default, the value is 100.
-Length of the k-mers. By default, the value is 16.
-Number of top k-mers in the selection of frequent k-mers. By default, the value is 500.
-Low complexity threshold: The value depends on the k-mer length. By default, it equals 1 for k-mers of length 16. It is adjusted automatically for other values of k.
+* Number of reads in each sample. By default, the value is 40,000.
+* Length of start and end regions selected for each read. By default, the value is 100.
+* Length of the k-mers. By default, the value is 16.
+* Number of top k-mers in the selection of frequent k-mers. By default, the value is 500.
+* Low complexity threshold: The value depends on the k-mer length. By default, it equals 1 for k-mers of length 16. It is adjusted automatically for other values of k.
     
-All these values can be customized by the user in the config file (see XXX). 
-
-Additional parameters can be specified 
-via the command-line.
+All these values can be customized by the user in the [Config file](#config-file). 
+Additional parameters can be specified via the command-line.
 
 ```bash
 --export_graph [output_file]
@@ -247,8 +237,6 @@ Change the size of the smoothing window used in the drop cut algorithm. (set to 
 --no_drop_cut / -ndc
 ```   
 Disable the drop cut step entirely (default: False)
-
-
 
 
 ```bash
@@ -301,7 +289,7 @@ porechop_abi --ab_initio_config YOUR_CONFIG.config ...
   sn        : Number of read to sample (default: 40 000 reads)
   sl        : Size of the samples (default : 100 bases)
   limit     : Number of k-mer kept after counting. (default: 500)
-  solid_km  : Use solid kmers instead of a hard limit. (specify the minimum count for a k-mer, will override "limit" option).
+  solid_km  : Use solid kmers instead of a hard limit (specify the minimum count for a k-mer, will override "limit" option).
   
   // K-mer options
   k           : K-mer size (between 2 and 32, default 16).
