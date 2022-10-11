@@ -4,7 +4,7 @@ Porechop_ABI can be installed using several methods, that can be separated in tw
 * Using package managers such as Conda or Pip.
 * Installing from sources using scripts or make.
 
-Except for conda installation, all requirements described in [documentation](README.md) must be satisfied before install.
+Except for conda installation, all requirements described in [README](README.md) must be satisfied before install.
 
 
 # Table of Content
@@ -34,7 +34,7 @@ See Conda [command list](https://docs.conda.io/projects/conda/en/latest/commands
 
 ## Fetching source code
 
-All the following methods require you either download and unzip this repository, or simply clone it:
+All the following methods require you to either download and unzip this repository, or simply clone it:
 
 ```bash
 git clone https://github.com/bonsai-team/Porechop_ABI.git
