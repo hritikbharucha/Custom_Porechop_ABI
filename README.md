@@ -1,10 +1,12 @@
 # Porechop_ABI
 
-Porechop_abi (*ab initio*) is an extension of Porechop that is able to infer the adapter sequence from the Oxford Nanopore reads. Adapters sequences are discovered directly from the reads using approximate k-mers counting and assembly. Inferred sequences can either be automatically added to the adapter database for the current run (adapters.py file), or just displayed.
+Porechop_ABI (*ab initio*) is an extension of Porechop whose purpose is to find and process adapter sequences in  ONT reads. 
 
-Trimming can then occur as usual, using all standard Porechop options.
+The difference with the initial version of Porechop is that Porechop_ABI does not use any external knowledge or database.  Adapter sequences are discovered directly from the reads using approximate k-mers counting and assembly. These sequences can either be automatically added to the adapter database of Porechop for the current run, or just displayed.  Trimming can then occur as usual, using all standard Porechop options.
 
-Porechop_ABI is not designed to infer barcoded sequences adapters, but will report several sequences if a mix of adapters is used.
+The software is able to report several distinct sequences if a mix of adapters is used. It can also be used to check whether a dataset has already been trimmed out or not, or to find leftover adapters in datasets that have been previously processed with Guppy
+
+Note that Porechop_ABI is not designed to infer barcoded sequences adapters.
 Demultiplexing should be done using standard Porechop commands or more appropriate tools.  
 
 # Table of Content
@@ -15,7 +17,7 @@ Demultiplexing should be done using standard Porechop commands or more appropria
    * [Python version](#python-version)
    * [Networkx](#networkx)
 * [Installation](#installation)
-* [Quick usage examples](#quick-usage-examples)
+* [Quick usage](#quick-usage-examples)
    * [Test Porechop_ABI](#test-porechop_abi)
 * [Usage](#usage)
    * [Simple runs](#simple-runs)
@@ -30,18 +32,18 @@ Demultiplexing should be done using standard Porechop commands or more appropria
 
 ## Requirements 
 
-If you want to install Porechop_ABI, your system must satisfy some requirements.<br>
+If you want to install Porechop_ABI, your system must satisfy some requirements. Porechop_ABI is written in Python and  C++ and uses two C++ libraries: SeqAn for sequence alignment and approximate k-mer processing, networkX for graph assembly.<br>
 In the case you chose to install using Conda, you can ignore this section (except the [OS](operating_system_version) requirement) and just use an up-to-date version of conda to install Porechop_ABI.
 Check the [installation](INSTALL.md) guide for more details.
 
 
 ### Operating System version
-* Mac OS >= 10.12
-* Linux, any version with compatible python and compiler requirements should work.
+* 
+*Linux, any version with compatible python and compiler requirements should work. Mac OS >= 10.12
 
 
 ### SeqAn 2.4 and zlib 1.2
-Seqan 2.4 and zlib 1.2 are both required library for Porechop_ABI to compile properly.
+SeqAn 2.4 and zlib 1.2 are both required library for Porechop_ABI to compile properly.
 Both are embeded in this repository, and should be automatically linked during compilation.<br>
 
 * Porechop_ABI updated the already embeded SeqAn library used by Porechop to version 2.4 (previously 2.3). This led to some changes in the requirements.
@@ -49,9 +51,9 @@ Both are embeded in this repository, and should be automatically linked during c
 
 
 ### Compiler and C++17
-Because of ssome specific features integrated in SeqAn 2.4 and modifications required to keep mac OS support, your compiler must be able to work with C++17.
+Because of some specific features integrated in SeqAn 2.4 and modifications required to keep mac OS support, your compiler must be able to work with C++17.
 
-* If you're using [GCC](https://gcc.gnu.org/), version 8 or later is required (check with `g++ --version`).
+* If you are using [GCC](https://gcc.gnu.org/), version 8 or later is required (check with `g++ --version`).
 * Recent versions of [Clang](http://clang.llvm.org/)(>=5.0.0) and [ICC](https://software.intel.com/en-us/c-compilers) should also work
 
 If for some reason you are interested in a C++14 compatible release, please open an issue here. Such install *should be* possible with additionnal work.
@@ -98,61 +100,76 @@ With [X] being the version of python you use.
 ## Installation 
 
 Porechop_ABI can be installed by several means. 
-The easiest way to install Porechop_ABI is to use the conda package management system and install it from the bioconda channel in a clean environment.
+The easiest way is to use the conda package management system and install it from the bioconda channel in a clean environment.
 All details about installation procedures are listed in the [installation](INSTALL.md) guide.<br>
 
 
-## Quick usage examples
-__Basic adapter inference and trimming:__<br>
+## Quick usage 
+
+
+### Adapter inference and trimming
+
+`porechop_abi --ab_initio -i input_reads.fastq -o output_reads.fastq`
 `porechop_abi -abi -i input_reads.fastq -o output_reads.fastq`
 
-__Only display inferred adapters:__<br>
+The input_reads.fastq file shoud contain the set of raw ONT reads. 
+The resulting trimmed reads are saved in  output_reads.fastq file.
+
+
+This command-line with the -abi flag allows to first guess the adapter sequences from the reads, add the sequence to the list of Porechop adapters ( (adapters.py file) and then run Porechop as usual. It is compatible with all Porechop options for trimming. <!--- , but behave poorly on barcoded reads. !--->
+
+<!---Adapter sequence inferrence is not activated by default.!--->
+
+
+### Adapter inference only 
+
 `porechop_abi -abi --guess_adapter_only -i input_reads.fastq.gz -o output_reads.fastq`
 `porechop_abi -abi -go -i input_reads.fastq -v 0 -o output_reads.fastq.gz`
 
+This command-line, with the additional -go flag,  allows to only guess and print the adapter sequences from the reads. It then stops the execution of the program, without 
+trimming the reads. 
 
-__Building a stronger consensus using more core module runs:__<br>
-`porechop_abi -abi -nr 20 -cr 30 -i input_reads.fastq.gz -o output_reads.fastq`
+### Test files
 
-### Test Porechop_ABI
-Two additionnal test files are provided to test Porechop_ABI<br>
+Two read   files are provided to test Porechop_ABI<br>
 Faster test: __Simulated data (with less core module runs than usual, discarding default database)__<br>
 `porechop_abi -abi -go -dd -nr 5 -cr 15 -i test/test_simulated_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`<br>
 Slower test: __Real data (standard parameters, discarding default database)__<br>
 `porechop_abi -abi -go -dd -i test/test_realdata_10k_read.fasta -tmp /tmp/pabi_temp -o /dev/null`<br>
 
-
 [//]: # (TODO: Add expected results for P_ABI tests.)
 
-## Usage
+### Warnings
 
-Porechop_abi offers several new options.
+Porechop_ABI can output two types of warning during the execution of adapter inference.
 
-### Simple runs
-```bash
---ab_initio / -abi
-```
+Low frequency warning: This warning means that the k-mers used to build the adapter sequences do not show a clear over-representation. In this case, the result of the algorithm is questionable, because the signal is not reliable. This may happen when the input reads are already trimmed, for example. 
 
-This flag allows to first guess the adapters sequences from the reads, add the sequence to the list of Porechop adapters and then run Porechop as usual. It is compatible with all Porechop options, but behave poorly on on barcoded reads. Adapter sequence inferrence is not activated by default.
+Poor consensus warning: This warning is activated when Porechop_ABI finds more than two distinct start (or end) adapters and when each of them is found in less than 30% reads. 
 
 
-```bash
---guess_adapter_only / -go
-```
+<!---
+__Building a stronger consensus using more core module runs:__<br>
+`porechop_abi -abi -nr 20 -cr 30 -i input_reads.fastq.gz -o output_reads.fastq`
+!--->
 
-This flag allows to only guess and print the adapter sequence from the reads. It then stops the execution of the program, without 
-trimming the reads. 
 
-For all other usages and description of the output files, you can refer to the Porechop [documentation](README_PORECHOP.md). 
+## Advance usage
 
-### Useful options 
-We also added several options to tune both the main porechop implementation and the ab-initio step to your needs.
+
+For all usages and description of the output files regarding read trimming, you can refer to the Porechop [documentation](README_PORECHOP.md). We decribe hereafter the options that are specific to the ABI module (ab initio phase). Some of them are described in the config file, and some of them in the command-line.
+
+### General-purpose options 
+
+#### Path to the config file  
   
 ```bash
 -abc / --ab_initio_config [path_to_file]
 ```
-Allow you to set a custom config file for the ab_initio phase (default file in Porechop folder)
-The config file come with it's own set of parameters check the "Config File" section for more details.
+Allows you to set a custom config file for the ab initio phase (default file in Porechop folder).
+The config file comes with its own set of parameters. Check the "Config File" section for more details.
+
+#### Temporary files
 
 ```bash
 -tmp / --temp_dir [path_to_folder]
@@ -161,12 +178,13 @@ Path to a writable temporary directory, used to store count file and temporary f
 The provided directory will be created if it does not exists, if the path is writable.
 By default, Porechop_ABI creates a ./tmp/ folder in the working directory (where the command is launched).
 
+#### Custom adapters
 
 ```bash
 --custom_adapters / -cap [path_to_file]
 ```     
 
-You may now set custom adapters without editing the adapter.py file.
+By default, Porechop stores its database of adapters in the adapter.py file. This options allows you to use a  set custom adapters without editing the adapter.py file.
 These adapters are only used at runtime, not added to the adapter.py file.
 Custom adapters must be stored in a text file following this format:
 ```    
@@ -176,10 +194,10 @@ Custom adapters must be stored in a text file following this format:
     --- repeat for each adapter pair---
 ```
 
-If your adapters does not contains the start or end sequence,
-just put an empty line
+If your adapters do not contain the start or end sequence,
+just put an empty line.
 
-Each adapters will be named using the adapter name as a prefix, like:
+Each adapter will be named using the adapter name as a prefix, like:
 
 ```
 "adapter_name_Top"
@@ -190,11 +208,24 @@ Each adapters will be named using the adapter name as a prefix, like:
 ```bash
 --discard_database  / -ddb
 ```                              
-In case you supply your own adapters, it can be usefull (and faster) to ignore the adapters from the Porechop database.
-This option was added for this situation, and require either ab-initio (-abi) or a custom adapter (-cap) to be set.(default: False)
+In case you supply your own adapters, it can be useful (and faster) to ignore the adapters from the Porechop database.
+This option was added for this situation, and require either ab initio (-abi) or a custom adapter (-cap) to be set. Default: False
 
 
-### Advanced settings
+### k-mers, sampling and  assembly options
+
+The algorithm implemented in the ABI module depends on a series  of parameters. They all have default values that work well in practice.
+
+Number of reads in each sample. By default, the value is 40,000.
+Length of start and end regions selected for each read. By default, the value is 100.
+Length of the k-mers. By default, the value is 16.
+Number of top k-mers in the selection of frequent k-mers. By default, the value is 500.
+Low complexity threshold: The value depends on the k-mer length. By default, it equals 1 for k-mers of length 16. It is adjusted automatically for other values of k.
+    
+All these values can be customized by the user in the config file (see XXX). 
+
+Additional parameters can be specified 
+via the command-line.
 
 ```bash
 --export_graph [output_file]
@@ -203,7 +234,7 @@ Let you export the assembly graph with some annotations to the provided path.
 Graphs are exported in graphml format, and can be visualised with programs such as Gephi.
 
 
-*The following options are specific to the drop-cut algorithm used to asjust sequences length after the (greedy) assembly step.
+*The following options are specific to the drop-cut algorithm used to adjust sequences length after the (greedy) assembly step.
 Only experienced users shoud try to adjust these settings.*
 
 ```bash
@@ -218,23 +249,21 @@ Change the size of the smoothing window used in the drop cut algorithm. (set to 
 Disable the drop cut step entirely (default: False)
 
 
-### Consensus options:
-Porechop_ABI build consensus sequences from multiple samples to increase confidence in the inferred adapter sequence.
-Some parameters can be adjusted from the command line.
+
 
 ```bash
 --multi_run / -mr  [int]
 ```   
-Number of putative adapters to reconstruct to ensure the inferred adapters sequences are stable.
-Each count file is exported separately, and can be reviewed if needed. (default: 10, set to 1 for single sample mode)
+Porechop_ABI builds consensus sequences from multiple samples to increase confidence in the inferred adapter sequence. This is the number of initial samples. 
+Each count file is exported separately, and can be reviewed if needed. Default: 10, set to 1 for single sample mode.
 
 ```bash
 --consensus_run / -cr [int]
 ```
-If using multi-run option above 1, set the number of additional sample performed if no stable consensus is immediatly found.
-All inferred adapter sequences are then clustered by similarity and consensus are generated for each cluster.
-(default: 20)
-  
+If using multi-run option above 1, set the number of additional samples performed if no stable consensus is  found after the first trial. Default: 20.
+
+After this step, all inferred adapter sequences are clustered by similarity, and consensus are generated for each cluster.
+
 
 ```bash
 --export_consensus / -ec [output_file]
@@ -245,19 +274,18 @@ Path to export the intermediate adapters found in consensus mode.
 ```bash
 --all_above_x / -aax [int]
 ```
-Only select consensus sequences if they are build using at least x percent of the total adapters.
-Default is 10% (3 sequence over 30). You can set it to 0 to keep all consensus.
+Only select consensus sequences if they are built using at least x percent of the total adapters.
+Default : 10 (3 sequences out of  30). You can set it to 0 to keep all consensus.
   
 ```bash
 --best_of_x / -box [int]
 ```
-Only select the best x consensus sequences from all consensus found. (default: 0, reports all consensus)
-
+Only select the best x consensus sequences from all consensus found. Default: 0, reports all consensus.
 
 
 ## Config file
 
-It is also possible to tune the parameters of the core module used to reconstruct the adapter sequence. Those advanced options are accessible in the config file located at /Porechop_ABI/porechop/ab_initio.config. Note that default values work just fine in practice, and it is most likely that you will not need to edit this file.
+It is also possible to tune the parameters of the ABI module . Those advanced options are accessible in the config file located at /Porechop_ABI/porechop/ab_initio.config. Note that default values work just fine in practice, and it is most likely that you will not need to edit this file.
 
 If you installed Porechop using the setup.py script, take note that the actual config file used when using porechop from command line will be the one stored in your installation folder (example: /usr/local/lib/python3.__X__/dist-packages/porechop/porechop/ab_initio.config).
 
@@ -290,7 +318,7 @@ porechop_abi --ab_initio_config YOUR_CONFIG.config ...
 ```
 
 **Notes:**
-Verbosity, number of threads, and number of runs are copied from the argmuments supplied to Porechop_ABI.
+Verbosity, number of threads, and number of runs are copied from the arguments supplied to Porechop_ABI.
 Changing the value of these parameters in the config file will have no effect.
 If you need to adjust one of them, refer to porechop -h
 
@@ -298,7 +326,6 @@ If you need to adjust one of them, refer to porechop -h
 ## Contributors
 
 The original Porechop program was provided by Ryan Wick.
-
 The ab initio extension is developed by Quentin Bonenfant, Laurent Noé and Hélène Touzet.
 
 ## License
