@@ -209,8 +209,8 @@ This option was added for this situation, and require either ab initio (-abi) or
 
 The algorithm implemented in the ABI module depends on a series of parameters concerning k-mer selection, sampling, and assembly. They all have default values that work well in practice.
 
-* Number of reads in each sample. By default, the value is 40,000.
-* Length of start and end regions selected for each read. By default, the value is 100.
+* Number of reads in each sample. By default, the value is 40,000 reads.
+* Length of start and end regions selected for each read. By default, the value is 100 nucleotides.
 * Length of the k-mers. By default, the value is 16.
 * Number of top k-mers in the selection of frequent k-mers. By default, the value is 500.
 * Low complexity threshold: The value depends on the k-mer length. By default, it equals 1 for k-mers of length 16. It is adjusted automatically for other values of k.
