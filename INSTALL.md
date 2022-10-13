@@ -25,7 +25,7 @@ If you do not have conda installed, you can get started [here](https://conda.io/
 With Miniconda3 or Anaconda  installed, it is recommended to keep conda up to date.
 
 ```bash
-conda update conda"
+conda update conda
 ```
 
 The different package required to install Porechop_ABI are scattered between the conda-forge and bioconda channels.
