@@ -245,9 +245,9 @@ Disable the drop cut step entirely (default: False)
 
 
 ```bash
---multi_run / -mr  [int]
+--number_of_run / -nr  [int]
 ```   
-Porechop_ABI builds consensus sequences from multiple samples to increase confidence in the inferred adapter sequence. The -mr falgs allows you to specify the number of initial samples. Each count file is exported separately, and can be reviewed if needed. Default: 10, set to 1 for single sample mode.
+Porechop_ABI builds consensus sequences from multiple samples to increase confidence in the inferred adapter sequence. The -nr flag allows you to specify the number of initial samples. Each count file is exported separately, and can be reviewed if needed. Default: 10, set to 1 for single sample mode.
 
 ```bash
 --consensus_run / -cr [int]
