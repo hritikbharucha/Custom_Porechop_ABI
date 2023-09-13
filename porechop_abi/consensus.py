@@ -38,9 +38,10 @@ def run_subprocess(program, arguments):
         os.path.realpath(__file__)), program)
     command_line = [prog_path] + arguments
     result = subprocess.run(command_line,
-                            capture_output=True,
-                            encoding="utf-8")
+                           # capture_output=True,
+                            encoding="utf-8",stderr=subprocess.PIPE,stdout=subprocess.PIPE)
     return(result.stdout)
+
 
 
 def get_compatibles(mat):
