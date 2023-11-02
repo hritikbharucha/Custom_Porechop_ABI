@@ -492,7 +492,9 @@ def align_adapter(read_seq, adapter_seq, scoring_scheme_vals):
 
 
 def add_number_to_read_name(read_name, number):
-    if ' ' not in read_name:
-        return read_name + '_' + str(number)
-    else:
+    if '\t' in read_name:
+        return read_name.replace('\t', '_' + str(number) + '\t', 1)
+    elif ' ' in read_name:
         return read_name.replace(' ', '_' + str(number) + ' ', 1)
+    else:
+        return read_name + '_' + str(number)
