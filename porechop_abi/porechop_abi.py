@@ -33,6 +33,10 @@ from .abinitio import launch_ab_initio
 from .arg_parser import get_arguments
 from .parse_adapter_file import *
 
+def filter_reads_by_adapter(reads):
+    filtered_reads = [read for read in reads if read.adapters_found()]
+    print(f"Filtered reads: {len(filtered_reads)}")
+    return filtered_reads
 
 def main():
     args = get_arguments()
@@ -113,6 +117,10 @@ def main():
             display_read_middle_trimming_summary(reads, args.discard_middle,
                                                  args.verbosity,
                                                  args.print_dest)
+
+        # Filter the reads to include only those with found adapters
+        reads = filter_reads_by_adapter(reads)
+
     elif args.verbosity > 0:
         print('No adapters found - output reads are unchanged from input reads\n',
               file=args.print_dest)
@@ -121,7 +129,6 @@ def main():
                  args.discard_middle, args.min_split_read_size, args.print_dest,
                  args.barcode_dir, args.input, args.untrimmed, args.threads,
                  args.discard_unassigned)
-
 
 def load_reads(input_file_or_directory, verbosity, print_dest, check_read_count):
 
