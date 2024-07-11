@@ -20,6 +20,15 @@ from .misc import yellow, red, add_line_breaks_to_sequence, END_FORMATTING, RED,
 
 class NanoporeRead(object):
 
+    def adapters_found(self):
+        """
+        Check if any adapter alignments were found at the start, end, or in the middle of the read.
+        """
+        start_found = bool(self.start_adapter_alignments)
+        end_found = bool(self.end_adapter_alignments)
+        middle_found = bool(self.middle_adapter_positions)
+        return start_found and end_found
+
     def __init__(self, name, seq, quals):
         self.name = name
 
